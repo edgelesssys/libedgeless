@@ -17,6 +17,10 @@ Key::Key() : rk_(kSizeKey) {
         throw crypto::Error("RDRAND failed to produce randomness");
 }
 
+Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
+  assert(rk_.size() >= kSizeKey);
+}
+
 struct KCtx {
   EVP_PKEY_CTX* const p = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
   ~KCtx() { EVP_PKEY_CTX_free(p); }
@@ -54,7 +58,7 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
-bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) const {
+bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
   // set key and IV
   if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
@@ -70,11 +74,11 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
       throw crypto::Error("Failed to set AAD.");
 
   // decrypt
-  assert(pt.size() >= ct.size());
-  if (ct.data()) {
-    if (EVP_DecryptUpdate(ctx.p, pt.data(), &len, ct.data(), ct.size()) <= 0)
+  assert(plaintext.size() >= ciphertext.size());
+  if (ciphertext.data()) {
+    if (EVP_DecryptUpdate(ctx.p, plaintext.data(), &len, ciphertext.data(), ciphertext.size()) <= 0)
       throw crypto::Error("Failed to set decrypt.");
-    assert(len == ct.size());
+    assert(len == ciphertext.size());
   }
 
   // check tag
@@ -85,15 +89,15 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
   return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
 }
 
-bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer tag, Buffer pt) const {
-  return decrypt(ct, iv, {}, tag, pt);
+bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const {
+  return decrypt(ciphertext, iv, {}, tag, plaintext);
 }
 
 bool Key::decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
   return decrypt({}, iv, aad, tag, {});
 }
 
-void Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const {
+void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
   CCtx ctx;
   // set key and IV
   if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
@@ -109,11 +113,11 @@ void Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) co
       throw crypto::Error("Failed to set AAD (enc).");
 
   // encrypt
-  assert(ct.size() >= pt.size());
-  if (pt.data()) {
-    if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0)
+  assert(ciphertext.size() >= plaintext.size());
+  if (plaintext.data()) {
+    if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &len, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
-    assert(len == pt.size());
+    assert(len == plaintext.size());
   }
 
   if (EVP_EncryptFinal_ex(ctx.p, nullptr, &len) <= 0)
@@ -125,8 +129,8 @@ void Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) co
     throw crypto::Error("Failed to get tag.");
 }
 
-void Key::encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const {
-  encrypt(pt, iv, {}, tag, ct);
+void Key::encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const {
+  encrypt(plaintext, iv, {}, tag, ciphertext);
 }
 
 void Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {

@@ -13,7 +13,6 @@ struct Error : std::logic_error {
 
 /**
  * AES-GCM key for encryption, decryption and derivation of new keys.
- * Relies on CBuffer, which is a small template class that containers of uint8_t auto-convert to.
  */
 class Key {
 public:
@@ -26,7 +25,7 @@ public:
   //! Generate new key using Intel instruction RDRAND.
   Key();
   //! Set key directly.
-  Key(std::vector<uint8_t> rk) : rk_(std::move(rk)) {}
+  Key(std::vector<uint8_t> rk); 
   Key(const Key&) = delete;
 
   //! Derive new key from current using a given nonce/salt.
@@ -35,19 +34,19 @@ public:
   /**
    * Decrypt with AAD.
    * 
-   * @param ct ciphertext buffer
+   * @param ciphertext ciphertext buffer
    * @param iv initialization vector buffer
    * @param aad additional authenticated data buffer
    * @param tag tag buffer; serves as MAC
-   * @param pt plaintext buffer (out)
-   * May be the same as ct for in-place decryption.
-   * @return true Decryption succeeded; the tag was valid for the given iv/ct combination.
+   * @param plaintext plaintext buffer (out)
+   * May be the same as ciphertext for in-place decryption.
+   * @return true Decryption succeeded; the tag was valid for the given iv/ciphertext combination.
    * @return false The tag was invalid or other error.
    */
-  bool decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) const;
+  bool decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const;
 
   //! Decrypt without AAD.
-  bool decrypt(CBuffer ct, CBuffer iv, CBuffer tag, Buffer pt) const;
+  bool decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const;
 
   //! Decrypt with AAD only.
   bool decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const;
@@ -55,18 +54,18 @@ public:
   /**
    * Encrypt with AAD.
    * 
-   * @param pt plaintext buffer
+   * @param plaintext plaintext buffer
    * @param iv initialization vector buffer
    * MUST NEVER repeat for an encryption key!
    * @param aad additional authenticated data buffer
    * @param tag tag buffer (out); serves as MAC
-   * @param ct ciphertext buffer (out)
-   * May be the same as pt for in-place encryption.
+   * @param ciphertext ciphertext buffer (out)
+   * May be the same as plaintext for in-place encryption.
    */
-  void encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const;
+  void encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const;
 
   //! Encrypt without AAD.
-  void encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const;
+  void encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const;
 
   //! Encrypt with AAD only. This can be used to protect the integrity of plaintext.
   void encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
