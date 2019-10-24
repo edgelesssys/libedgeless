@@ -25,6 +25,8 @@ target_link_libraries(ecrypto
 # TESTS
 #
 enable_testing()
+set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
+set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
 include(GoogleTest)
 
