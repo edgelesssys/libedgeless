@@ -4,22 +4,27 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(libedgeless C CXX)
+set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
-
-# ecrypto
+#
+# LIBS
+#
 add_library(ecrypto STATIC
-    crypto.cpp)
+    ${SRC}/ecrypto.cpp)
 
 target_compile_options(ecrypto
     PUBLIC "-mrdrnd")
 
+# link OpenSSL's crypto lib
+# TODO: check for presence
 target_link_libraries(ecrypto
     PUBLIC crypto)
 
 #
 # TESTS
 #
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
 include(GoogleTest)
 
 # ecrypto
