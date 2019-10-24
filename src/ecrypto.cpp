@@ -1,11 +1,11 @@
 #include "ecrypto.h"
 
+#include <assert.h>
+#include <immintrin.h>  // _rdrand64_step()
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
-#include <immintrin.h> // _rdrand64_step() 
-#include <assert.h>
 
-namespace crypto { 
+namespace crypto {
 
 Key::Key() : rk_(kSizeKey) {
   // initialize rk_ using _rdrand64_step()
@@ -23,7 +23,7 @@ struct KCtx {
 };
 
 Key Key::derive(CBuffer nonce) const {
-  KCtx ctx; 
+  KCtx ctx;
   if (EVP_PKEY_derive_init(ctx.p) <= 0)
     throw crypto::Error("Failed to init HKDF");
 
@@ -35,16 +35,16 @@ Key Key::derive(CBuffer nonce) const {
 
   if (EVP_PKEY_CTX_set1_hkdf_key(ctx.p, rk_.data(), rk_.size()) <= 0)
     throw crypto::Error("Failed to set key for HKDF");
-  
+
   if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce.p, nonce.size()) <= 0)
     throw crypto::Error("Failed to set salt for HKDF");
 
-  std::vector<uint8_t> buf(32); // output of SHA256 HMAC is 256-bit
+  std::vector<uint8_t> buf(32);  // output of SHA256 HMAC is 256-bit
   size_t size_buf = buf.size();
   if (EVP_PKEY_derive(ctx.p, buf.data(), &size_buf) <= 0)
     throw crypto::Error("Failed to derive key");
   assert(size_buf == buf.size());
-  
+
   buf.resize(kSizeKey);
   return buf;
 }
@@ -62,17 +62,17 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     throw crypto::Error("Failed to set IV.");
-  
+
   int len;
   // optionally add aad
   if (aad.data())
-    if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
+    if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD.");
 
   // decrypt
   assert(pt.size() >= ct.size());
   if (ct.data()) {
-    if (EVP_DecryptUpdate(ctx.p, pt.data(), &len, ct.data(), ct.size()) <= 0) 
+    if (EVP_DecryptUpdate(ctx.p, pt.data(), &len, ct.data(), ct.size()) <= 0)
       throw crypto::Error("Failed to set decrypt.");
     assert(len == ct.size());
   }
@@ -104,14 +104,14 @@ void Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) co
 
   int len;
   // optionally add aad
-  if (aad.data()) 
-    if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
+  if (aad.data())
+    if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD (enc).");
 
   // encrypt
   assert(ct.size() >= pt.size());
   if (pt.data()) {
-    if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0) 
+    if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
     assert(len == pt.size());
   }

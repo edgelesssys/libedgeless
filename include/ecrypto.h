@@ -1,12 +1,13 @@
 #pragma once
+#include "buffer.h"
+
 #include <array>
 #include <vector>
 #include <exception>
-#include "buffer.h"
 
 namespace crypto {
 
-struct Error : public std::logic_error {
+struct Error : std::logic_error {
   using logic_error::logic_error;
 };
 
