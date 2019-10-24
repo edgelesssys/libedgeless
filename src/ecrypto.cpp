@@ -93,11 +93,13 @@ bool Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) co
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     return false;
-  // encrypt
+  // add aad
   int len;
-  if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
-    return false;
-
+  if (aad.data()) {
+    if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
+      return false;
+  }
+  // encrypt
   if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0) 
     return false;
 
