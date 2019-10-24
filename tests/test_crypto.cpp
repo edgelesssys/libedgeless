@@ -9,6 +9,7 @@ TEST(Key, basic) {
     
     decltype(auto) pt1 = pt0;
 
-    crypto::Key k0, k1;
-    // k0.encrypt(pt0.data(), pt0.size(), iv.data(), iv.size(), )
+    crypto::Key key;
+    vector<uint8_t> tag(16);
+    key.encrypt(pt0, iv, tag);
 }
