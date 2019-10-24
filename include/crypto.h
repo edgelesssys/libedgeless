@@ -1,9 +1,9 @@
 #pragma once
-#include "buffer.h"
 
 #include <array>
 #include <vector>
 #include <exception>
+#include "span.h"
 
 namespace crypto {
 
@@ -19,6 +19,9 @@ class Key {
 public:
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
+
+  using Buffer = tcb::span<uint8_t>;
+  using CBuffer = tcb::span<const uint8_t>;
 
   //! Generate new key using Intel instruction RDRAND.
   Key();

@@ -1,4 +1,4 @@
-#include "ecrypto.h"
+#include "crypto.h"
 #include <gtest/gtest.h>
 #include <algorithm>
 
@@ -12,6 +12,8 @@ TEST(Key, enc_dec) {
   crypto::Key key;
   crypto::Tag tag;
   fill(tag.begin(), tag.end(), 't');
+
+  key.encrypt(pt_in, iv, tag, ct);
 
   ASSERT_NO_THROW(key.encrypt(pt_in, iv, tag, ct));
   EXPECT_NE(pt_in, ct);

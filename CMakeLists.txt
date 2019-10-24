@@ -11,7 +11,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # LIBS
 #
 add_library(ecrypto STATIC
-    ${SRC}/ecrypto.cpp)
+    ${SRC}/crypto.cc)
 
 target_compile_options(ecrypto
     PUBLIC "-mrdrnd")
@@ -34,7 +34,7 @@ if (WITH_TESTS)
 
     # ecrypto
     add_executable(test_ecrypto
-        tests/test_ecrypto.cpp)
+        tests/test_crypto.cc)
 
     target_link_libraries(test_ecrypto 
         gtest

@@ -1,4 +1,4 @@
-#include "ecrypto.h"
+#include "crypto.h"
 
 #include <assert.h>
 #include <immintrin.h>  // _rdrand64_step()
@@ -36,7 +36,7 @@ Key Key::derive(CBuffer nonce) const {
   if (EVP_PKEY_CTX_set1_hkdf_key(ctx.p, rk_.data(), rk_.size()) <= 0)
     throw crypto::Error("Failed to set key for HKDF");
 
-  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce.p, nonce.size()) <= 0)
+  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce.data(), nonce.size()) <= 0)
     throw crypto::Error("Failed to set salt for HKDF");
 
   std::vector<uint8_t> buf(32);  // output of SHA256 HMAC is 256-bit
@@ -57,7 +57,7 @@ struct CCtx {
 bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) const {
   CCtx ctx;
   // set key and IV
-  if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.p) <= 0)
+  if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
     throw crypto::Error("Failed to init decryption context.");
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
@@ -79,7 +79,7 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
 
   // check tag
   assert(tag.size() >= kSizeTag);
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.p)) <= 0)
+  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) <= 0)
     throw crypto::Error("Failed to set tag.");
 
   return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
