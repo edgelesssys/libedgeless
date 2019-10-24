@@ -64,17 +64,20 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
     return false;
   // decrypt
   int len;
-  if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
+  if (aad.data())
+    if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
+      return false;
+
+  assert(pt.size() >= ct.size());
+  if (EVP_DecryptUpdate(ctx.p, pt.data(), &len, ct.data(), ct.size()) <= 0) 
     return false;
 
-  if (EVP_DecryptUpdate(ctx.p, pt.p, &len, ct.data(), ct.size()) <= 0) 
+  // check tag
+  assert(tag.size() >= kSizeTag);
+  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.p)) <= 0)
     return false;
 
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag,
-                           const_cast<uint8_t*>(tag.p)) <= 0)
-    return false;
-
-  return EVP_DecryptFinal_ex(ctx.p, nullptr, &len);
+  return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
 }
 
 bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer tag, Buffer pt) const {
@@ -95,19 +98,20 @@ bool Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) co
     return false;
   // add aad
   int len;
-  if (aad.data()) {
+  if (aad.data())
     if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
       return false;
-  }
+
   // encrypt
+  assert(ct.size() >= pt.size());
   if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0) 
     return false;
 
-  assert(kSizeTag <= tag.size()); 
-  if (!EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, tag.data()) <= 0)
+  if (EVP_EncryptFinal_ex(ctx.p, nullptr, &len) <= 0)
     return false;
 
-  return EVP_EncryptFinal_ex(ctx.p, nullptr, &len);
+  assert(tag.size() >= kSizeTag);
+  return EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) > 0;
 }
 
 bool Key::encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const {
