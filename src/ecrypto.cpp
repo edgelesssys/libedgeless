@@ -58,29 +58,29 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
   CCtx ctx;
   // set key and IV
   if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.p) <= 0)
-    return false;
+    throw crypto::Error("Failed to init decryption context.");
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
-    return false;
+    throw crypto::Error("Failed to set IV.");
   
   int len;
   // optionally add aad
   if (aad.data())
     if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
-      return false;
+      throw crypto::Error("Failed to set AAD.");
 
   // decrypt
   assert(pt.size() >= ct.size());
   if (ct.data()) {
     if (EVP_DecryptUpdate(ctx.p, pt.data(), &len, ct.data(), ct.size()) <= 0) 
-      return false;
+      throw crypto::Error("Failed to set decrypt.");
     assert(len == ct.size());
   }
 
   // check tag
   assert(tag.size() >= kSizeTag);
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.p)) <= 0)
-    return false;
+    throw crypto::Error("Failed to set tag.");
 
   return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
 }
@@ -93,43 +93,44 @@ bool Key::decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
   return decrypt({}, iv, aad, tag, {});
 }
 
-bool Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const {
+void Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const {
   CCtx ctx;
   // set key and IV
   if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
-    return false;
+    throw crypto::Error("Failed to init encryption context.");
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
-    return false;
+    throw crypto::Error("Failed to set IV (enc).");
 
   int len;
   // optionally add aad
   if (aad.data()) 
     if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
-      return false;
+      throw crypto::Error("Failed to set AAD (enc).");
 
   // encrypt
   assert(ct.size() >= pt.size());
   if (pt.data()) {
     if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0) 
-      return false;
+      throw crypto::Error("Failed to encrypt.");
     assert(len == pt.size());
   }
 
   if (EVP_EncryptFinal_ex(ctx.p, nullptr, &len) <= 0)
-    return false;
+    throw crypto::Error("Failed to finalize encryption.");
 
   // get tag
   assert(tag.size() >= kSizeTag);
-  return EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) > 0;
+  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) <= 0)
+    throw crypto::Error("Failed to get tag.");
 }
 
-bool Key::encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const {
-  return encrypt(pt, iv, {}, tag, ct);
+void Key::encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const {
+  encrypt(pt, iv, {}, tag, ct);
 }
 
-bool Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
-  return encrypt({}, iv, aad, tag, {});
+void Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
+  encrypt({}, iv, aad, tag, {});
 }
 
 }  // namespace crypto

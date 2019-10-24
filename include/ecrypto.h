@@ -58,16 +58,14 @@ public:
    * @param tag tag buffer (out); serves as MAC
    * @param ct ciphertext buffer (out)
    * May be the same as pt for in-place encryption.
-   * @return true success
-   * @return false error
    */
-  bool encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const;
+  void encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const;
 
   //! Encrypt without AAD.
-  bool encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const;
+  void encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const;
 
   //! Encrypt with AAD only. This can be used to protect the integrity of plaintext.
-  bool encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
+  void encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
 
 protected:
   static constexpr auto kMaxRetriesRand = 8u;

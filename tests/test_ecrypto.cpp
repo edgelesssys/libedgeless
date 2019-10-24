@@ -13,7 +13,7 @@ TEST(Key, enc_dec) {
   crypto::Tag tag;
   fill(tag.begin(), tag.end(), 't');
 
-  ASSERT_TRUE(key.encrypt(pt_in, iv, tag, ct));
+  ASSERT_NO_THROW(key.encrypt(pt_in, iv, tag, ct));
   EXPECT_NE(pt_in, ct);
   ASSERT_TRUE(key.decrypt(ct, iv, tag, pt_out));
   EXPECT_EQ(pt_in, pt_out);
@@ -39,7 +39,7 @@ TEST(Key, enc_dec_with_aad) {
   crypto::Tag tag;
   fill(tag.begin(), tag.end(), 't');
 
-  ASSERT_TRUE(key.encrypt(pt_in, iv, aad, tag, ct));
+  ASSERT_NO_THROW(key.encrypt(pt_in, iv, aad, tag, ct));
   EXPECT_NE(pt_in, ct);
   ASSERT_TRUE(key.decrypt(ct, iv, aad, tag, pt_out));
   EXPECT_EQ(pt_in, pt_out);
@@ -63,7 +63,7 @@ TEST(Key, aad_only) {
   crypto::Key key;
   crypto::Tag tag;
 
-  ASSERT_TRUE(key.encrypt(iv, aad, tag));
+  ASSERT_NO_THROW(key.encrypt(iv, aad, tag));
   ASSERT_TRUE(key.decrypt(iv, aad, tag));
 
   // modify aad and try again
@@ -81,7 +81,7 @@ TEST(Key, derive_key) {
   vector<uint8_t> ct(size_v), pt_out(size_v);
 
   crypto::Tag tag;
-  ASSERT_TRUE(k1.encrypt(pt_in, iv, tag, ct));
+  ASSERT_NO_THROW(k1.encrypt(pt_in, iv, tag, ct));
   // attempt to decrypt with parent key
   ASSERT_FALSE(k0.decrypt(ct, iv, tag, pt_out));
   ASSERT_TRUE(k1.decrypt(ct, iv, tag, pt_out));
