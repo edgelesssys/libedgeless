@@ -24,19 +24,22 @@ target_link_libraries(ecrypto
 #
 # TESTS
 #
-enable_testing()
-set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
-set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
-include(GoogleTest)
+option(WITH_TESTS "Build tests" OFF)
+if (WITH_TESTS)
+    enable_testing()
+    set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
+    set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
+    include(GoogleTest)
 
-# ecrypto
-add_executable(test_ecrypto
-    tests/test_ecrypto.cpp)
+    # ecrypto
+    add_executable(test_ecrypto
+        tests/test_ecrypto.cpp)
 
-target_link_libraries(test_ecrypto 
-    gtest
-    gtest_main
-    ecrypto)
+    target_link_libraries(test_ecrypto 
+        gtest
+        gtest_main
+        ecrypto)
 
-gtest_discover_tests(test_ecrypto)
+    gtest_discover_tests(test_ecrypto)
+endif()

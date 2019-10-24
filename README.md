@@ -19,5 +19,7 @@ make
 
 ```bash
 cd build
+cmake -DWITH_TESTS=on ..
+make
 ctest
 ```
