@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the Apache 2.0 License.
 
-// Copied from https://github.com/microsoft/CCF
+// Adapted from https://github.com/microsoft/CCF
 
 #pragma once
-#include <atomic>
-#include <stdint.h>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -21,6 +19,11 @@ struct Array
   auto size() const
   {
     return n * sizeof(T);
+  }
+
+  decltype(auto) data() const
+  {
+    return p;
   }
 
   constexpr Array() : p(nullptr), n(0) {}
@@ -61,17 +64,3 @@ template <typename T>
 using CArray = Array<const T>;
 using Buffer = Array<uint8_t>;
 using CBuffer = Array<const uint8_t>;
-constexpr CBuffer nullb;
-
-template <typename T>
-CBuffer asCb(const T& o)
-{
-  return {reinterpret_cast<const uint8_t*>(&o), sizeof(T)};
-}
-
-// convenience function for testing (leaks memory!)
-template <typename B>
-B alloc(size_t size)
-{
-  return {new uint8_t[size], size};
-}
