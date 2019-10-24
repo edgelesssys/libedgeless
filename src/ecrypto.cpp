@@ -64,10 +64,10 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
     return false;
   // decrypt
   int len;
-  if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.p, aad.size()) <= 0) 
+  if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
     return false;
 
-  if (EVP_DecryptUpdate(ctx.p, pt.p, &len, ct.p, ct.size()) <= 0) 
+  if (EVP_DecryptUpdate(ctx.p, pt.p, &len, ct.data(), ct.size()) <= 0) 
     return false;
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag,
@@ -78,46 +78,42 @@ bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) c
 }
 
 bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer tag, Buffer pt) const {
-  return decrypt(ct, iv, iv.size(), nullptr, 0, tag, pt);
+  return decrypt(ct, iv, {}, tag, pt);
 }
 
-bool Key::decrypt(const uint8_t* iv, const size_t iv.size(), const uint8_t* aad,
-                  size_t aad.size(), const uint8_t* tag) const {
-  return decrypt(nullptr, 0, iv, iv.size(), aad, aad.size(), tag, nullptr);
+bool Key::decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
+  return decrypt({}, iv, aad, tag, {});
 }
 
-bool Key::encrypt(const uint8_t* pt, const size_t size_pt, const uint8_t* iv,
-                  const size_t iv.size(), const uint8_t* aad,
-                  const size_t aad.size(), uint8_t* tag, uint8_t* ct) const {
+bool Key::encrypt(CBuffer pt, CBuffer iv, CBuffer aad, Buffer tag, Buffer ct) const {
   CCtx ctx;
   // set key and IV
-  if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv) <= 0)
+  if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
     return false;
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     return false;
   // encrypt
   int len;
-  if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad, aad.size()) <= 0) 
+  if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0) 
     return false;
 
-  if (EVP_EncryptUpdate(ctx.p, ct, &len, pt, size_pt) <= 0) 
+  if (EVP_EncryptUpdate(ctx.p, ct.data(), &len, pt.data(), pt.size()) <= 0) 
     return false;
 
-  if (!EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, tag) <= 0)
+  assert(kSizeTag <= tag.size()); 
+  if (!EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_GET_TAG, kSizeTag, tag.data()) <= 0)
     return false;
 
   return EVP_EncryptFinal_ex(ctx.p, nullptr, &len);
 }
 
-bool Key::encrypt(const uint8_t* pt, const size_t size_pt, const uint8_t* iv,
-                  const size_t iv.size(), uint8_t* tag, uint8_t* ct) const {
-  return encrypt(pt, size_pt, iv, iv.size(), nullptr, 0, tag, ct);
+bool Key::encrypt(CBuffer pt, CBuffer iv, Buffer tag, Buffer ct) const {
+  return encrypt(pt, iv, {}, tag, ct);
 }
 
-bool Key::encrypt(const uint8_t* iv, const size_t iv.size(), const uint8_t* aad,
-                  const size_t aad.size(), uint8_t* tag) const {
-  return encrypt(nullptr, 0, iv, iv.size(), aad, aad.size(), tag, nullptr);
+bool Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
+  return encrypt({}, iv, aad, tag, {});
 }
 
 }  // namespace crypto
