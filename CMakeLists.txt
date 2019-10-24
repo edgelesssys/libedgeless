@@ -30,7 +30,7 @@ include(GoogleTest)
 
 # ecrypto
 add_executable(test_ecrypto
-    tests/test_crypto.cpp)
+    tests/test_ecrypto.cpp)
 
 target_link_libraries(test_ecrypto 
     gtest

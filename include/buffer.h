@@ -34,9 +34,11 @@ struct Array
     n(s.size())
   {}
 
-  using T_NON_CONST = std::remove_const_t<T>;
-  Array(std::vector<T_NON_CONST>& v) : p(v.data()), n(v.size()) {}
-  Array(const std::vector<T_NON_CONST>& v) : p(v.data()), n(v.size()) {}
+  // conversion from containers
+  template<typename C>
+  Array(C& c) : p(c.data()), n(c.size()) {}
+  template<typename C>
+  Array(const C& c) : p(c.data()), n(c.size()) {}
 
   template <typename U, typename V = void>
   using ENABLE_CTOR = std::enable_if_t<std::is_convertible<U*, T*>::value, V>;
@@ -54,6 +56,7 @@ struct Array
     return !(*this == that);
   }
 
+  using T_NON_CONST = std::remove_const_t<T>;
   explicit operator std::vector<T_NON_CONST>() const
   {
     return {p, p + n};
