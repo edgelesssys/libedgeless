@@ -22,7 +22,11 @@ Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
 }
 
 struct KCtx {
-  EVP_PKEY_CTX* const p = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
+  EVP_PKEY_CTX* const p; 
+  KCtx() : p(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr)) {
+    if (!p)
+      throw crypto::Error("Could not allocate PKEY CTX");
+  }
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };
 
@@ -54,7 +58,11 @@ Key Key::derive(CBuffer nonce) const {
 }
 
 struct CCtx {
-  EVP_CIPHER_CTX* const p = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX* const p;
+  CCtx() : p(EVP_CIPHER_CTX_new()) {
+    if (!p)
+      throw crypto::Error("Could not allocate CIPHER_CTX");
+  }
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
@@ -99,6 +107,7 @@ bool Key::decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
 
 void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
   CCtx ctx;
+
   // set key and IV
   if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
     throw crypto::Error("Failed to init encryption context.");
