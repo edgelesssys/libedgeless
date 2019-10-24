@@ -1,4 +1,4 @@
-#include <ecrypto.h>
+#include "ecrypto.h"
 
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
@@ -22,7 +22,7 @@ struct KCtx {
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };
 
-Key Key::derive(const uint8_t* nonce, const size_t size_nonce) const {
+Key Key::derive(CBuffer nonce) const {
   KCtx ctx; 
   if (EVP_PKEY_derive_init(ctx.p) <= 0)
     throw crypto::Error("Failed to init HKDF");
@@ -36,7 +36,7 @@ Key Key::derive(const uint8_t* nonce, const size_t size_nonce) const {
   if (EVP_PKEY_CTX_set1_hkdf_key(ctx.p, rk_.data(), rk_.size()) <= 0)
     throw crypto::Error("Failed to set key for HKDF");
   
-  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce, size_nonce) <= 0)
+  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce.p, nonce.size()) <= 0)
     throw crypto::Error("Failed to set salt for HKDF");
 
   std::vector<uint8_t> buf(32); // output of SHA256 HMAC is 256-bit
@@ -54,55 +54,51 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
-bool Key::decrypt(const uint8_t* ct, const size_t size_ct, const uint8_t* iv,
-                  const size_t size_iv, const uint8_t* aad,
-                  const size_t size_aad, const uint8_t* tag,
-                  uint8_t* pt) const {
+bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer aad, CBuffer tag, Buffer pt) const {
   CCtx ctx;
   // set key and IV
-  if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv) <= 0)
+  if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.p) <= 0)
     return false;
 
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, size_iv, nullptr) <= 0)
+  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     return false;
   // decrypt
   int len;
-  if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad, size_aad) <= 0) 
+  if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.p, aad.size()) <= 0) 
     return false;
 
-  if (EVP_DecryptUpdate(ctx.p, pt, &len, ct, size_ct) <= 0) 
+  if (EVP_DecryptUpdate(ctx.p, pt.p, &len, ct.p, ct.size()) <= 0) 
     return false;
 
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag,
-                           const_cast<uint8_t*>(tag)) <= 0)
+                           const_cast<uint8_t*>(tag.p)) <= 0)
     return false;
 
   return EVP_DecryptFinal_ex(ctx.p, nullptr, &len);
 }
 
-bool Key::decrypt(const uint8_t* ct, const size_t size_ct, const uint8_t* iv,
-                  const size_t size_iv, const uint8_t* tag, uint8_t* pt) const {
-  return decrypt(ct, size_ct, iv, size_iv, nullptr, 0, tag, pt);
+bool Key::decrypt(CBuffer ct, CBuffer iv, CBuffer tag, Buffer pt) const {
+  return decrypt(ct, iv, iv.size(), nullptr, 0, tag, pt);
 }
 
-bool Key::decrypt(const uint8_t* iv, const size_t size_iv, const uint8_t* aad,
-                  size_t size_aad, const uint8_t* tag) const {
-  return decrypt(nullptr, 0, iv, size_iv, aad, size_aad, tag, nullptr);
+bool Key::decrypt(const uint8_t* iv, const size_t iv.size(), const uint8_t* aad,
+                  size_t aad.size(), const uint8_t* tag) const {
+  return decrypt(nullptr, 0, iv, iv.size(), aad, aad.size(), tag, nullptr);
 }
 
 bool Key::encrypt(const uint8_t* pt, const size_t size_pt, const uint8_t* iv,
-                  const size_t size_iv, const uint8_t* aad,
-                  const size_t size_aad, uint8_t* tag, uint8_t* ct) const {
+                  const size_t iv.size(), const uint8_t* aad,
+                  const size_t aad.size(), uint8_t* tag, uint8_t* ct) const {
   CCtx ctx;
   // set key and IV
   if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv) <= 0)
     return false;
 
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, size_iv, nullptr) <= 0)
+  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     return false;
   // encrypt
   int len;
-  if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad, size_aad) <= 0) 
+  if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad, aad.size()) <= 0) 
     return false;
 
   if (EVP_EncryptUpdate(ctx.p, ct, &len, pt, size_pt) <= 0) 
@@ -115,13 +111,13 @@ bool Key::encrypt(const uint8_t* pt, const size_t size_pt, const uint8_t* iv,
 }
 
 bool Key::encrypt(const uint8_t* pt, const size_t size_pt, const uint8_t* iv,
-                  const size_t size_iv, uint8_t* tag, uint8_t* ct) const {
-  return encrypt(pt, size_pt, iv, size_iv, nullptr, 0, tag, ct);
+                  const size_t iv.size(), uint8_t* tag, uint8_t* ct) const {
+  return encrypt(pt, size_pt, iv, iv.size(), nullptr, 0, tag, ct);
 }
 
-bool Key::encrypt(const uint8_t* iv, const size_t size_iv, const uint8_t* aad,
-                  const size_t size_aad, uint8_t* tag) const {
-  return encrypt(nullptr, 0, iv, size_iv, aad, size_aad, tag, nullptr);
+bool Key::encrypt(const uint8_t* iv, const size_t iv.size(), const uint8_t* aad,
+                  const size_t aad.size(), uint8_t* tag) const {
+  return encrypt(nullptr, 0, iv, iv.size(), aad, aad.size(), tag, nullptr);
 }
 
 }  // namespace crypto
