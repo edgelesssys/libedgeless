@@ -16,4 +16,9 @@ TEST(Key, basic_enc_dec) {
   ASSERT_TRUE(key.encrypt(pt_in, iv, tag, ct));
   ASSERT_TRUE(key.decrypt(ct, iv, tag, pt_out));
   EXPECT_EQ(pt_in, pt_out);
+
+  // modify tag and try again
+  tag[0] ^= 1;
+  ASSERT_FALSE(key.decrypt(ct, iv, tag, pt_out));
+  EXPECT_EQ(pt_in, pt_out);
 }
