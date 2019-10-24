@@ -7,6 +7,7 @@ project(libedgeless C CXX)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
 
+# ecrypto
 add_library(ecrypto STATIC
     crypto.cpp)
 
@@ -19,10 +20,14 @@ target_link_libraries(ecrypto
 #
 # TESTS
 #
+include(GoogleTest)
+
+# ecrypto
 add_executable(test_ecrypto
     tests/test_crypto.cpp)
 
-target_link_libraries(test_ecrypto
-    PUBLIC ecrypto)   
+target_link_libraries(test_ecrypto 
+    gtest
+    ecrypto)
 
-#gtest_add_tests(TARGET test_ecrypto)
+gtest_discover_tests(test_ecrypto)
