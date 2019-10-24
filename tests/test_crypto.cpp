@@ -1,6 +1,7 @@
 #include <ecrypto.h>
+#include <gtest/gtest.h>
 
-int main()
-{
-    return 0;
+
+TEST(Key, basic) {
+    crypto::Key k;
 }

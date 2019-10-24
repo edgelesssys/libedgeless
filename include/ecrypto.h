@@ -48,7 +48,7 @@ public:
   
 
 private:
-  Key(std::vector<uint8_t> rk);
+  Key(std::vector<uint8_t> rk) : rk_(std::move(rk)) {}
 
   static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;

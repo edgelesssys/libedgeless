@@ -24,6 +24,7 @@ target_link_libraries(ecrypto
 #
 # TESTS
 #
+enable_testing()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
 include(GoogleTest)
 
@@ -33,6 +34,7 @@ add_executable(test_ecrypto
 
 target_link_libraries(test_ecrypto 
     gtest
+    gtest_main
     ecrypto)
 
 gtest_discover_tests(test_ecrypto)
