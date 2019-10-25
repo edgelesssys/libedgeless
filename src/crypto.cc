@@ -5,6 +5,7 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 
+namespace edgeless {
 namespace crypto {
 
 Key::Key() : rk_(kSizeKey) {
@@ -22,7 +23,7 @@ Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
 }
 
 struct KCtx {
-  EVP_PKEY_CTX* const p; 
+  EVP_PKEY_CTX* const p;
   KCtx() : p(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr)) {
     if (!p)
       throw crypto::Error("Could not allocate PKEY CTX");
@@ -149,3 +150,4 @@ void Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
 }
 
 }  // namespace crypto
+}  // namespace edgeless
