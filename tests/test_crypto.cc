@@ -1,6 +1,6 @@
-#include "crypto.h"
 #include <gtest/gtest.h>
 #include <algorithm>
+#include "crypto.h"
 
 using namespace std;
 using namespace edgeless::crypto;
@@ -9,7 +9,7 @@ TEST(Key, enc_dec) {
   constexpr auto size_v = 1000ul;
   const vector<uint8_t> pt_in(size_v, 'a'), iv(12, 'b');
   vector<uint8_t> ct(size_v), pt_out(size_v);
-  
+
   Key key;
   Tag tag;
   fill(tag.begin(), tag.end(), 't');
@@ -37,7 +37,7 @@ TEST(Key, enc_dec_with_aad) {
   vector<uint8_t> ct(size_v), pt_out(size_v);
 
   vector<uint8_t> aad(999, 'a');
-  
+
   Key key;
   Tag tag;
   fill(tag.begin(), tag.end(), 't');
@@ -62,7 +62,7 @@ TEST(Key, aad_only) {
   const vector<uint8_t> iv(12, 'b');
 
   vector<uint8_t> aad(777, 'a');
-  
+
   Key key;
   Tag tag;
 
@@ -70,7 +70,7 @@ TEST(Key, aad_only) {
   ASSERT_TRUE(key.decrypt(iv, aad, tag));
 
   // modify aad and try again
-  aad[aad.size()/2] ^= 1;
+  aad[aad.size() / 2] ^= 1;
   ASSERT_FALSE(key.decrypt(iv, aad, tag));
 }
 
