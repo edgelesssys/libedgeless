@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include <algorithm>
 #include "crypto.h"
 
 using namespace std;
@@ -10,11 +9,9 @@ TEST(Key, enc_dec) {
   const vector<uint8_t> pt_in(size_v, 'a'), iv(12, 'b');
   vector<uint8_t> ct(size_v), pt_out(size_v);
 
-  Key key;
+  const Key key;
   Tag tag;
-  fill(tag.begin(), tag.end(), 't');
-
-  key.encrypt(pt_in, iv, tag, ct);
+  tag.fill('t');
 
   ASSERT_NO_THROW(key.encrypt(pt_in, iv, tag, ct));
   EXPECT_NE(pt_in, ct);
@@ -38,9 +35,9 @@ TEST(Key, enc_dec_with_aad) {
 
   vector<uint8_t> aad(999, 'a');
 
-  Key key;
+  const Key key;
   Tag tag;
-  fill(tag.begin(), tag.end(), 't');
+  tag.fill('t');
 
   ASSERT_NO_THROW(key.encrypt(pt_in, iv, aad, tag, ct));
   EXPECT_NE(pt_in, ct);
@@ -63,7 +60,7 @@ TEST(Key, aad_only) {
 
   vector<uint8_t> aad(777, 'a');
 
-  Key key;
+  const Key key;
   Tag tag;
 
   ASSERT_NO_THROW(key.encrypt(iv, aad, tag));
@@ -75,7 +72,7 @@ TEST(Key, aad_only) {
 }
 
 TEST(Key, derive_key) {
-  Key k0;
+  const Key k0;
   vector<uint8_t> nonce(200, 'n');
   auto k1 = k0.derive(nonce);
 

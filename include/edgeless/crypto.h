@@ -1,10 +1,11 @@
 #pragma once
 
 #include <array>
-#include <vector>
 #include <exception>
+#include <vector>
 #include "span.h"
 
+namespace edgeless {
 namespace crypto {
 
 struct Error : std::logic_error {
@@ -15,7 +16,7 @@ struct Error : std::logic_error {
  * AES-GCM key for encryption, decryption and derivation of new keys.
  */
 class Key {
-public:
+ public:
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
 
@@ -25,7 +26,7 @@ public:
   //! Generate new key using Intel instruction RDRAND.
   Key();
   //! Set key directly.
-  Key(std::vector<uint8_t> rk); 
+  Key(std::vector<uint8_t> rk);
   Key(const Key&) = delete;
 
   //! Derive new key from current using a given nonce/salt.
@@ -70,7 +71,7 @@ public:
   //! Encrypt with AAD only. This can be used to protect the integrity of plaintext.
   void encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
 
-protected:
+ protected:
   static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;
 };
@@ -78,3 +79,4 @@ protected:
 using Tag = std::array<uint8_t, Key::kSizeTag>;
 
 }  // namespace crypto
+}  // namespace edgeless

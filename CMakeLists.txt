@@ -11,15 +11,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
 #
 # LIBS
 #
-add_library(ecrypto STATIC
+add_library(edgeless STATIC
     ${SRC}/crypto.cc)
 
-target_compile_options(ecrypto
+target_compile_options(edgeless
     PUBLIC "-mrdrnd")
 
 # link OpenSSL's crypto lib
 # TODO: check for presence
-target_link_libraries(ecrypto
+target_link_libraries(edgeless
     PUBLIC crypto)
 
 #
@@ -34,13 +34,13 @@ if (WITH_TESTS)
     include(GoogleTest)
 
     # ecrypto
-    add_executable(test_ecrypto
+    add_executable(test_crypto
         tests/test_crypto.cc)
 
-    target_link_libraries(test_ecrypto 
+    target_link_libraries(test_crypto 
         gtest
         gtest_main
-        ecrypto)
+        edgeless)
 
-    gtest_discover_tests(test_ecrypto)
+    gtest_discover_tests(test_crypto)
 endif()

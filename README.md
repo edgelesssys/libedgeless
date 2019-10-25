@@ -7,8 +7,7 @@ This C++ library contains utility modules that are meant to be re-used in differ
 ## Building
 
 ```bash
-git submodule init
-git submodule update --recursive
+git submodule update --init --recursive
 mkdir build
 cd build
 cmake ..
