@@ -69,6 +69,7 @@ struct CCtx {
 bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
   // set key and IV
+  assert(iv.size());
   if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
     throw crypto::Error("Failed to init decryption context.");
 
@@ -77,13 +78,13 @@ bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
 
   int len;
   // optionally add aad
-  if (aad.data())
+  if (aad.size())
     if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD.");
 
   // decrypt
   assert(plaintext.size() >= ciphertext.size());
-  if (ciphertext.data()) {
+  if (ciphertext.size()) {
     if (EVP_DecryptUpdate(ctx.p, plaintext.data(), &len, ciphertext.data(), ciphertext.size()) <= 0)
       throw crypto::Error("Failed to set decrypt.");
     assert(len == ciphertext.size());
@@ -109,6 +110,7 @@ void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
   CCtx ctx;
 
   // set key and IV
+  assert(iv.size());
   if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
     throw crypto::Error("Failed to init encryption context.");
 
@@ -117,13 +119,13 @@ void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
 
   int len;
   // optionally add aad
-  if (aad.data())
+  if (aad.size())
     if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD (enc).");
 
   // encrypt
   assert(ciphertext.size() >= plaintext.size());
-  if (plaintext.data()) {
+  if (plaintext.size()) {
     if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &len, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
     assert(len == plaintext.size());
