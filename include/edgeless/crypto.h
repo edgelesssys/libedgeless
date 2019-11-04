@@ -27,7 +27,11 @@ class Key {
   Key();
   //! Set key directly.
   Key(std::vector<uint8_t> rk);
+  Key(Key&&) = default;
+
+  // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates). 
   Key(const Key&) = delete;
+  Key operator=(const Key&) = delete;
 
   //! Derive new key from current using a given nonce/salt.
   Key derive(CBuffer nonce) const;
