@@ -3,7 +3,7 @@
 #include <array>
 #include <exception>
 #include <vector>
-#include "span.h"
+#include "buffer.h"
 
 namespace edgeless {
 namespace crypto {
@@ -19,9 +19,6 @@ class Key {
  public:
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
-
-  using Buffer = tcb::span<uint8_t>;
-  using CBuffer = tcb::span<const uint8_t>;
 
   //! Generate new key using Intel instruction RDRAND.
   Key();
