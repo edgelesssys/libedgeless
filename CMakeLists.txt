@@ -9,7 +9,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
 
 #
-# LIBS
+# Targets
 #
 add_library(edgeless STATIC
     ${SRC}/crypto.cc)
@@ -23,7 +23,22 @@ target_link_libraries(edgeless
     PUBLIC crypto)
 
 #
-# TESTS
+# Install
+#
+install(
+  TARGETS edgeless
+  EXPORT edgeless
+  DESTINATION edgeless
+)
+
+install(
+  EXPORT edgeless
+  DESTINATION edgeless
+  NAMESPACE edgeless::
+)
+
+#
+# Tests
 #
 option(WITH_TESTS "Build tests" OFF)
 if (WITH_TESTS)
