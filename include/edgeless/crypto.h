@@ -3,7 +3,7 @@
 #include <array>
 #include <exception>
 #include <vector>
-#include "span.h"
+#include "buffer.h"
 
 namespace edgeless {
 namespace crypto {
@@ -20,9 +20,6 @@ class Key {
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
 
-  using Buffer = tcb::span<uint8_t>;
-  using CBuffer = tcb::span<const uint8_t>;
-
   //! Generate new key using Intel instruction RDRAND.
   Key();
   //! Set key directly.
@@ -34,7 +31,7 @@ class Key {
   Key operator=(const Key&) = delete;
 
   //! Derive new key from current using a given nonce/salt.
-  Key derive(CBuffer nonce) const;
+  Key Derive(CBuffer nonce) const;
 
   /**
    * Decrypt with AAD.
@@ -48,13 +45,13 @@ class Key {
    * @return true Decryption succeeded; the tag was valid for the given iv/ciphertext combination.
    * @return false The tag was invalid or other error.
    */
-  bool decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const;
+  bool Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const;
 
   //! Decrypt without AAD.
-  bool decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const;
+  bool Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const;
 
   //! Decrypt with AAD only.
-  bool decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const;
+  bool Decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const;
 
   /**
    * Encrypt with AAD.
@@ -67,13 +64,18 @@ class Key {
    * @param ciphertext ciphertext buffer (out)
    * May be the same as plaintext for in-place encryption.
    */
-  void encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const;
+  void Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const;
 
   //! Encrypt without AAD.
-  void encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const;
+  void Encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const;
 
   //! Encrypt with AAD only. This can be used to protect the integrity of plaintext.
-  void encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
+  void Encrypt(CBuffer iv, CBuffer aad, Buffer tag) const;
+
+  //! Get fixed key for testing key (FOR TESTING ONLY).
+  static Key GetTestKey() {
+    return {std::vector<uint8_t>(kSizeKey)};
+  }
 
  protected:
   static constexpr auto kMaxRetriesRand = 8u;

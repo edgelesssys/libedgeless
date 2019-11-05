@@ -42,8 +42,8 @@ install(
 #
 # Tests
 #
-option(WITH_TESTS "Build tests" OFF)
-if (WITH_TESTS)
+option(BUILD_TESTS "Build tests" OFF)
+if (BUILD_TESTS)
     enable_testing()
     set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
     set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
