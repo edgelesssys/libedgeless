@@ -8,6 +8,8 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 #
 # Targets
 #
