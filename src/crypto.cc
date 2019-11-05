@@ -100,11 +100,11 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
 }
 
 bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const {
-  return decrypt(ciphertext, iv, {}, tag, plaintext);
+  return Decrypt(ciphertext, iv, {}, tag, plaintext);
 }
 
 bool Key::Decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
-  return decrypt({}, iv, aad, tag, {});
+  return Decrypt({}, iv, aad, tag, {});
 }
 
 void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
@@ -142,11 +142,11 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
 }
 
 void Key::Encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const {
-  encrypt(plaintext, iv, {}, tag, ciphertext);
+  Encrypt(plaintext, iv, {}, tag, ciphertext);
 }
 
 void Key::Encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
-  encrypt({}, iv, aad, tag, {});
+  Encrypt({}, iv, aad, tag, {});
 }
 
 }  // namespace crypto
