@@ -31,7 +31,7 @@ struct KCtx {
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };
 
-Key Key::derive(CBuffer nonce) const {
+Key Key::Derive(CBuffer nonce) const {
   KCtx ctx;
   if (EVP_PKEY_derive_init(ctx.p) <= 0)
     throw crypto::Error("Failed to init HKDF");
@@ -67,7 +67,7 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
-bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
+bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
   // set key and IV
   assert(iv.size());
@@ -99,15 +99,15 @@ bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
   return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
 }
 
-bool Key::decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const {
+bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const {
   return decrypt(ciphertext, iv, {}, tag, plaintext);
 }
 
-bool Key::decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
+bool Key::Decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
   return decrypt({}, iv, aad, tag, {});
 }
 
-void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
+void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
   CCtx ctx;
 
   // set key and IV
@@ -141,11 +141,11 @@ void Key::encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
     throw crypto::Error("Failed to get tag.");
 }
 
-void Key::encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const {
+void Key::Encrypt(CBuffer plaintext, CBuffer iv, Buffer tag, Buffer ciphertext) const {
   encrypt(plaintext, iv, {}, tag, ciphertext);
 }
 
-void Key::encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
+void Key::Encrypt(CBuffer iv, CBuffer aad, Buffer tag) const {
   encrypt({}, iv, aad, tag, {});
 }
 
