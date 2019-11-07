@@ -77,7 +77,7 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
     throw crypto::Error("Failed to set IV.");
 
-  int len;
+  int len = 0;
   // optionally add aad
   if (aad.size())
     if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
