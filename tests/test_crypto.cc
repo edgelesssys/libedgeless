@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <gtest/gtest.h>
 #include "crypto.h"
 
@@ -55,7 +56,6 @@ TEST(Key, enc_dec_with_aad) {
 }
 
 TEST(Key, aad_only) {
-  constexpr auto size_v = 123ul;
   const vector<uint8_t> iv(12, 'b');
 
   vector<uint8_t> aad(777, 'a');
@@ -69,6 +69,26 @@ TEST(Key, aad_only) {
   // modify aad and try again
   aad[aad.size() / 2] ^= 1;
   ASSERT_FALSE(key.Decrypt(iv, aad, tag));
+}
+
+// replicate an error from rocksdb
+TEST(Key, aad_only_rocksdb_footer) {
+  static constexpr array<uint8_t, 12> iv{"footer12345"};
+  const vector<uint8_t> nonce(20, 'n'), raw_key{73, 213, 224, 7, 127, 55, 164, 221, 241, 22, 90, 224, 163, 17, 23, 63};
+  const Key key_enc(raw_key), key_dec(raw_key);
+
+  // replicate footer layout
+  vector<uint8_t> buf = {237, 166, 2, 34, 175, 159, 2, 159, 2};
+  buf.resize(56);
+  edgeless::Buffer aad(buf.data(), 40);
+  edgeless::Buffer tag(aad.end(), Key::kSizeTag);
+
+  ASSERT_NO_THROW(key_enc.Encrypt(iv, aad, tag));
+  ASSERT_TRUE(key_dec.Decrypt(iv, aad, tag));
+
+  // modify aad and try again
+  aad.data()[aad.size() / 2] ^= 1;
+  ASSERT_FALSE(key_dec.Decrypt(iv, aad, tag));
 }
 
 TEST(Key, derive_key) {
