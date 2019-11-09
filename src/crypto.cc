@@ -96,7 +96,8 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) <= 0)
     throw crypto::Error("Failed to set tag.");
 
-  return EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
+  const auto tag_valid = EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
+  return tag_valid;
 }
 
 bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer tag, Buffer plaintext) const {
