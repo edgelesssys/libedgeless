@@ -29,6 +29,20 @@ TEST(Key, enc_dec) {
   EXPECT_EQ(pt_in, pt_out);
 }
 
+TEST(Key, enc_dec_inplace) {
+  const vector<uint8_t> ref(456, 'a'), iv(12, 'b');
+  vector<uint8_t> buf = ref; 
+  const Key key;
+  Tag tag;
+
+  // encrypt in place
+  ASSERT_NO_THROW(key.Encrypt(buf, iv, tag, buf));
+  EXPECT_NE(buf, ref);
+  // decrypt in place
+  ASSERT_TRUE(key.Decrypt(buf, iv, tag, buf));
+  EXPECT_EQ(buf, ref);
+}
+
 TEST(Key, enc_dec_with_aad) {
   constexpr auto size_v = 123ul;
   const vector<uint8_t> pt_in(size_v, 'a'), iv(66, 'b');
