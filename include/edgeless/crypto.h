@@ -76,6 +76,8 @@ class Key {
   static Key GetTestKey() {
     return {std::vector<uint8_t>(kSizeKey)};
   }
+ 
+  static constexpr auto kDefaultSizeIv = 12ul;
 
  protected:
   static constexpr auto kMaxRetriesRand = 8u;

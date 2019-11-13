@@ -58,8 +58,10 @@ Key Key::Derive(CBuffer nonce) const {
   return buf;
 }
 
+
 struct CCtx {
   EVP_CIPHER_CTX* const p;
+
   CCtx() : p(EVP_CIPHER_CTX_new()) {
     if (!p)
       throw crypto::Error("Could not allocate CIPHER_CTX");
@@ -67,16 +69,28 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
+template<typename F_INIT>
+void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {
+  assert(iv.size());
+  // in case of a default IV size, we can set everything up in one call
+  if (iv.size() == Key::kDefaultSizeIv) {
+    if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
+      throw crypto::Error("Failed to init context (enc, default IV size).");
+  } 
+  else {
+    if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) <= 0)
+      throw crypto::Error("Failed to init context (enc).");
+    if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
+      throw crypto::Error("Failed to set IV length (enc).");
+    if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
+      throw crypto::Error("Failed to set IV (enc).");
+  }
+}
+
 bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
-  // set key and IV
-  assert(iv.size());
-  if (EVP_DecryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
-    throw crypto::Error("Failed to init decryption context.");
-
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
-    throw crypto::Error("Failed to set IV.");
-
+  Init(EVP_DecryptInit_ex, ctx, rk_, iv);
+  
   int len = 0;
   // optionally add aad
   if (aad.size())
@@ -109,14 +123,7 @@ bool Key::Decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
 
 void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
   CCtx ctx;
-
-  // set key and IV
-  assert(iv.size());
-  if (EVP_EncryptInit_ex(ctx.p, EVP_aes_128_gcm(), nullptr, rk_.data(), iv.data()) <= 0)
-    throw crypto::Error("Failed to init encryption context.");
-
-  if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
-    throw crypto::Error("Failed to set IV (enc).");
+  Init(EVP_EncryptInit_ex, ctx, rk_, iv);
 
   int len;
   // optionally add aad
