@@ -79,11 +79,11 @@ void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, 
   } 
   else {
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) <= 0)
-      throw crypto::Error("Failed to init context (enc).");
+      throw crypto::Error("Failed to init context.");
     if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
-      throw crypto::Error("Failed to set IV length (enc).");
-    if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
-      throw crypto::Error("Failed to set IV (enc).");
+      throw crypto::Error("Failed to set IV length.");
+    if (f_init(ctx.p, nullptr, nullptr, rk.data(), iv.data()) <= 0)
+      throw crypto::Error("Failed to set key and IV.");
   }
 }
 
