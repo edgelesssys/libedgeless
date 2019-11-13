@@ -70,14 +70,15 @@ struct CCtx {
 };
 
 template<typename F_INIT>
-void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {
-  assert(iv.size());
+void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {  
+  assert(rk.size() == Key::kSizeKey);
   // in case of a default IV size, we can set everything up in one call
   if (iv.size() == Key::kDefaultSizeIv) {
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
       throw crypto::Error("Failed to init context (enc, default IV size).");
   } 
   else {
+    assert(iv.size());
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) <= 0)
       throw crypto::Error("Failed to init context.");
     if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_IVLEN, iv.size(), nullptr) <= 0)
@@ -91,18 +92,21 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
   CCtx ctx;
   Init(EVP_DecryptInit_ex, ctx, rk_, iv);
   
-  int len = 0;
   // optionally add aad
-  if (aad.size())
-    if (EVP_DecryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
+  if (aad.size()) {
+    int aad_s;
+    if (EVP_DecryptUpdate(ctx.p, nullptr, &aad_s, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD.");
+    assert(aad_s == aad.size());
+  }
 
   // decrypt
   assert(plaintext.size() >= ciphertext.size());
   if (ciphertext.size()) {
-    if (EVP_DecryptUpdate(ctx.p, plaintext.data(), &len, ciphertext.data(), ciphertext.size()) <= 0)
+    int plaintext_s;
+    if (EVP_DecryptUpdate(ctx.p, plaintext.data(), &plaintext_s, ciphertext.data(), ciphertext.size()) <= 0)
       throw crypto::Error("Failed to set decrypt.");
-    assert(len == ciphertext.size());
+    assert(plaintext_s == ciphertext.size());
   }
 
   // check tag
@@ -110,7 +114,9 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
   if (EVP_CIPHER_CTX_ctrl(ctx.p, EVP_CTRL_GCM_SET_TAG, kSizeTag, const_cast<uint8_t*>(tag.data())) <= 0)
     throw crypto::Error("Failed to set tag.");
 
-  const auto tag_valid = EVP_DecryptFinal_ex(ctx.p, nullptr, &len) > 0;
+  int final_s;
+  const auto tag_valid = EVP_DecryptFinal_ex(ctx.p, plaintext.end(), &final_s) > 0;
+  assert(!final_s);
   return tag_valid;
 }
 
@@ -126,22 +132,27 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
   CCtx ctx;
   Init(EVP_EncryptInit_ex, ctx, rk_, iv);
 
-  int len;
   // optionally add aad
-  if (aad.size())
-    if (EVP_EncryptUpdate(ctx.p, nullptr, &len, aad.data(), aad.size()) <= 0)
+  if (aad.size()) {
+    int aad_s;
+    if (EVP_EncryptUpdate(ctx.p, nullptr, &aad_s, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD (enc).");
+    assert(aad_s == aad.size());
+  }
 
   // encrypt
   assert(ciphertext.size() >= plaintext.size());
   if (plaintext.size()) {
-    if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &len, plaintext.data(), plaintext.size()) <= 0)
+    int ciphertext_s; 
+    if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &ciphertext_s, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
-    assert(len == plaintext.size());
+    assert(ciphertext_s == plaintext.size());
   }
 
-  if (EVP_EncryptFinal_ex(ctx.p, nullptr, &len) <= 0)
+  int final_s;
+  if (EVP_EncryptFinal_ex(ctx.p, ciphertext.end(), &final_s) <= 0)
     throw crypto::Error("Failed to finalize encryption.");
+  assert(!final_s);
 
   // get tag
   assert(tag.size() >= kSizeTag);
