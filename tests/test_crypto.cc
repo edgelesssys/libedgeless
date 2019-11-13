@@ -34,21 +34,21 @@ TEST(Key, enc_dec) {
 TEST(Key, enc_dec_2) {
   constexpr auto size_v = 1053ul;
   const VB pt_in(size_v, 'a');
-  VB ct(size_v), pt_out(size_v);
+  VB ct_and_tag(size_v + 16), pt_out(size_v);
 
   // construct an 8-byte IV where we can change trailing bytes
-  VB iv_b(16, 'b');
-  edgeless::CBuffer iv(iv_b.data(), 8);
+  edgeless::Buffer ct(ct_and_tag.data(), size_v); 
+  edgeless::Buffer iv(ct_and_tag.end().base()-16, 8);
+  fill(iv.begin(), iv.end(), 'x');
 
   const Key key;
   Tag tag;
   tag.fill('t');
 
   ASSERT_NO_THROW(key.Encrypt(pt_in, iv, tag, ct));
-  EXPECT_NE(pt_in, ct);
 
   // change bytes trailing iv
-  fill(iv_b.begin() + 8, iv_b.end(), 'x');
+  fill(iv.begin() + 8, iv.end(), 'y');
   ASSERT_TRUE(key.Decrypt(ct, iv, tag, pt_out));
   EXPECT_EQ(pt_in, pt_out);
 
