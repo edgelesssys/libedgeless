@@ -5,6 +5,10 @@
 #include <vector>
 #include "buffer.h"
 
+#ifdef CHECK_DUP_IV
+#include <set>
+#endif
+
 namespace edgeless {
 namespace crypto {
 
@@ -82,6 +86,10 @@ class Key {
  protected:
   static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;
+#ifdef CHECK_DUP_IV
+  // Used for detecting duplicated encryption IVs during testing
+  mutable std::set<std::vector<uint8_t>> seen_enc_ivs_;
+#endif
 };
 
 using Tag = std::array<uint8_t, Key::kSizeTag>;

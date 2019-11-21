@@ -35,16 +35,14 @@ TEST(Key, enc_dec_2) {
   constexpr auto size_v = 1053ul;
   const VB pt_in(size_v, 'a');
   VB ct_and_tag(size_v + 16), pt_out(size_v);
+  VB iv(8);
+  fill(iv.begin(), iv.end(), 'x');
 
   // construct an 8-byte IV where we can change trailing bytes
   edgeless::Buffer ct(ct_and_tag.data(), size_v); 
-  edgeless::Buffer iv(ct_and_tag.end().base()-16, 8);
-  fill(iv.begin(), iv.end(), 'x');
+  edgeless::Buffer tag(ct_and_tag.end().base()-16, 16);
 
   const Key key;
-  Tag tag;
-  tag.fill('t');
-
   ASSERT_NO_THROW(key.Encrypt(pt_in, iv, tag, ct));
 
   // change bytes trailing iv
@@ -138,3 +136,21 @@ TEST(Key, reference_vectors) {
   ASSERT_EQ(ciphertext, ciphertext_ref);
   ASSERT_EQ(tag, tag_ref);
 }
+
+#ifdef CHECK_DUP_IV
+TEST(Key, check_duplicate_iv) {
+  constexpr auto size_v = 1000ul;
+  const VB pt_in(size_v, 'a'), iv(12, 'b');
+  VB ct(size_v), pt_out(size_v);
+
+  const Key key;
+  Tag tag;
+
+  for (int i = 0; i < 10; i++)
+    ASSERT_NO_THROW(key.Encrypt(pt_in, {(uint8_t*)&i, sizeof(i)}, tag, ct));
+
+  for (int i = 0; i < 10; i++)
+    ASSERT_THROW(key.Encrypt(pt_in, {(uint8_t*)&i, sizeof(i)}, tag, ct), edgeless::crypto::Error);
+}
+
+#endif
