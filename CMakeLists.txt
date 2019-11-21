@@ -10,11 +10,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-string(TOUPPER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
-if(${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
-add_compile_definitions(CHECK_DUP_IV)
-endif()
-
 #
 # Targets
 #
@@ -47,8 +42,8 @@ install(
 #
 # Tests
 #
-option(BUILD_TESTS "Build tests" OFF)
-if (BUILD_TESTS)
+option(WITH_TESTS "Build tests" OFF)
+if (WITH_TESTS)
     enable_testing()
     set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
     set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
