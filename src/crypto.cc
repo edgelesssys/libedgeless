@@ -129,11 +129,14 @@ bool Key::Decrypt(CBuffer iv, CBuffer aad, CBuffer tag) const {
 }
 
 void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer ciphertext) const {
-#ifdef CHECK_DUP_IV
-  const std::vector<uint8_t> ivv(iv.data(), iv.data() + iv.size());
-  if (seen_enc_ivs_.find(ivv) != seen_enc_ivs_.end())
-    throw crypto::Error("DEBUG: reuse of IV during encryption.");
-  seen_enc_ivs_.insert(ivv);
+#ifndef NDEBUG
+  {
+    std::lock_guard guard(m_);
+    const std::vector<uint8_t> ivv(iv.data(), iv.data() + iv.size());
+    if (seen_enc_ivs_.find(ivv) != seen_enc_ivs_.end())
+      throw crypto::Error("DEBUG: reuse of IV during encryption.");
+    seen_enc_ivs_.insert(ivv);
+  }
 #endif
 
   CCtx ctx;

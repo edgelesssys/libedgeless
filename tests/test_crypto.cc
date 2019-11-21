@@ -137,7 +137,7 @@ TEST(Key, reference_vectors) {
   ASSERT_EQ(tag, tag_ref);
 }
 
-#ifdef CHECK_DUP_IV
+#ifndef NDEBUG
 TEST(Key, check_duplicate_iv) {
   constexpr auto size_v = 1000ul;
   const VB pt_in(size_v, 'a'), iv(12, 'b');

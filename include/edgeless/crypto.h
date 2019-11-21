@@ -5,7 +5,8 @@
 #include <vector>
 #include "buffer.h"
 
-#ifdef CHECK_DUP_IV
+#ifndef NDEBUG
+#include <mutex>
 #include <set>
 #endif
 
@@ -86,9 +87,10 @@ class Key {
  protected:
   static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;
-#ifdef CHECK_DUP_IV
+#ifndef NDEBUG
   // Used for detecting duplicated encryption IVs during testing
   mutable std::set<std::vector<uint8_t>> seen_enc_ivs_;
+  mutable std::mutex m_;
 #endif
 };
 
