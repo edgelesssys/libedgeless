@@ -13,16 +13,29 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 #
 # Targets
 #
+set(sources ${SRC}/crypto.cc)
+set(compileoptions "-mrdrnd")
+set(libs crypto)
 add_library(edgeless STATIC
-    ${SRC}/crypto.cc)
+    ${sources})
+
+# Object library to be incorporated into other libraries
+add_library(edgeless_o OBJECT
+    ${sources})
 
 target_compile_options(edgeless
-    PUBLIC "-mrdrnd")
+    PUBLIC ${compileoptions})
+
+target_compile_options(edgeless_o
+    PUBLIC ${compileoptions})
 
 # link OpenSSL's crypto lib
 # TODO: check for presence
 target_link_libraries(edgeless
-    PUBLIC crypto)
+    PUBLIC ${libs})
+
+target_link_libraries(edgeless_o
+    PUBLIC ${libs})
 
 #
 # Install
