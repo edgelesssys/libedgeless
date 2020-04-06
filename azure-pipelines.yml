@@ -8,6 +8,7 @@ variables:
   tag: '$(Build.BuildId)'
   # The default build agents have 2 cores
   cores: 2
+  testresults: testresults.txt
 
 stages:
 - stage: Build
@@ -38,6 +39,11 @@ stages:
         targetPath: build
     - script: |
         chmod u+x *_test
-        ctest -j$(cores)
+        ctest -j$(cores) -O $(testresults)
       workingDirectory: build
       name: CTest
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: CTest
+        testResultsFiles: $(testresults)
+        searchFolder: build
