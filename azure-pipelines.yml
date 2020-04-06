@@ -22,6 +22,11 @@ stages:
     - script: make -j$(cores)
       workingDirectory: build
       name: Make
+    - script: |
+        rm -r ./*/
+        rm *.a
+      workingDirectory: build
+      name: Cleanup
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: build
