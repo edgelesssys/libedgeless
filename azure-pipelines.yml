@@ -18,7 +18,7 @@ stages:
       submodules: recursive
     - task: CMake@1
       inputs:
-        cmakeArgs: '-DBUILD_TESTS=on $(Build.SourcesDirectory)'
+        cmakeArgs: '-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=on $(Build.SourcesDirectory)'
     - script: make -j$(cores)
       workingDirectory: build
       name: Make
