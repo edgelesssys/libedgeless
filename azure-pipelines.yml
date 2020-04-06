@@ -1,0 +1,53 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+variables:
+  tag: '$(Build.BuildId)'
+  # The default build agents have 2 cores
+  cores: 2
+
+stages:
+- stage: Build
+  jobs:
+  - job: Make
+    steps:
+    - checkout: self
+      submodules: recursive
+    - task: CMake@1
+      inputs:
+        cmakeArgs: '-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=on $(Build.SourcesDirectory)'
+    - script: make -j$(cores)
+      workingDirectory: build
+      name: Make
+    - script: |
+        rm -r ./*/
+        rm *.a
+      workingDirectory: build
+      name: Cleanup
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: build
+        artifact: 'build_dir'
+        publishLocation: 'pipeline'
+- stage: Test
+  jobs:
+  - job: Run
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'build_dir'
+        targetPath: build
+    # "-T Test" makes ctest generate output in the desired format in Testing/<generated tag>/Test.xml
+    - script: |
+        chmod u+x *_test
+        ctest -j$(cores) -T Test
+      workingDirectory: build
+      name: CTest
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: CTest
+        testResultsFiles: build/Testing/*/Test.xml
