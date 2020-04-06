@@ -8,6 +8,7 @@ variables:
   tag: '$(Build.BuildId)'
   # The default build agents have 2 cores
   cores: 2
+  bin_dir: $(Build.SourcesDirectory)/bin
 
 stages:
 - stage: Build
@@ -18,31 +19,35 @@ stages:
       submodules: recursive
     - task: CMake@1
       inputs:
-        cmakeArgs: '-DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=on $(Build.SourcesDirectory)'
+        # Make cmake output to bin directory
+        cmakeArgs: 'cmake -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$(bin_dir) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=on $(Build.SourcesDirectory)'
     - script: make -j$(cores)
       workingDirectory: build
       name: Make
+    # Copy test description file to bin directory
+    - script: cp CTestTestfile.cmake $(bin_dir)
+      workingDirectory: build
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: build
-        artifact: 'build_dir'
-        publishLocation: 'pipeline'
+        targetPath: $(bin_dir)
+        artifact: bin_dir
+        publishLocation: pipeline
 - stage: Test
   jobs:
   - job: Run
     steps:
     - task: DownloadPipelineArtifact@2
       inputs:
-        buildType: 'current'
-        artifactName: 'build_dir'
-        targetPath: build
+        buildType: current
+        artifactName: bin_dir
+        targetPath: $(bin_dir)
     # "-T Test" makes ctest generate output in the desired format in Testing/<generated tag>/Test.xml
     - script: |
         chmod u+x *_test
         ctest -j$(cores) -T Test
-      workingDirectory: build
+      workingDirectory: $(bin_dir)
       name: CTest
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: CTest
-        testResultsFiles: build/Testing/*/Test.xml
+        testResultsFiles: $(bin_dir)/Testing/*/Test.xml
