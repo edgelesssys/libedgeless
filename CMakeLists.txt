@@ -65,7 +65,7 @@ if (BUILD_TESTS)
 
     # ecrypto
     add_executable(crypto_test
-        tests/test_crypto.cc)
+        tests/crypto_test.cc)
 
     target_link_libraries(crypto_test 
         gtest
