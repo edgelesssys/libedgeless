@@ -8,7 +8,6 @@ variables:
   tag: '$(Build.BuildId)'
   # The default build agents have 2 cores
   cores: 2
-  testresults: testresults.txt
 
 stages:
 - stage: Build
@@ -37,13 +36,13 @@ stages:
         buildType: 'current'
         artifactName: 'build_dir'
         targetPath: build
+    # "-T Test" makes ctest generate output in the desired format in Testing/<generated tag>/Test.xml
     - script: |
         chmod u+x *_test
-        ctest -j$(cores) -O $(testresults)
+        ctest -j$(cores) -T Test
       workingDirectory: build
       name: CTest
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: CTest
-        testResultsFiles: $(testresults)
-        searchFolder: build
+        testResultsFiles: build/Testing/*/Test.xml
