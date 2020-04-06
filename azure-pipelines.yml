@@ -15,6 +15,7 @@ stages:
   - job: Make
     steps:
     - checkout: self
+      submodules: recursive
     - task: CMake@1
       inputs:
         cmakeArgs: '-DBUILD_TESTS=on $(Build.SourcesDirectory)'
