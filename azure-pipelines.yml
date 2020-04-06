@@ -1,0 +1,42 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-18.04'
+
+variables:
+  tag: '$(Build.BuildId)'
+  # The default build agents have 2 cores
+  cores: 2
+
+stages:
+- stage: Build
+  jobs:
+  - job: Make
+    steps:
+    - checkout: self
+    - task: CMake@1
+      inputs:
+        cmakeArgs: '$(Build.SourcesDirectory)'
+    - script: make -j$(cores)
+      workingDirectory: build
+      name: Make
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: build
+        artifact: 'build_dir'
+        publishLocation: 'pipeline'
+- stage: Test
+  jobs:
+  - job: Run
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'build_dir'
+        targetPath: build
+    - script: |
+        chmod u+x *_test
+        ctest -j$(cores)
+      workingDirectory: build
+      name: CTest
