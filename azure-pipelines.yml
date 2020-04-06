@@ -17,7 +17,7 @@ stages:
     - checkout: self
     - task: CMake@1
       inputs:
-        cmakeArgs: '$(Build.SourcesDirectory)'
+        cmakeArgs: '-DBUILD_TESTS=on $(Build.SourcesDirectory)'
     - script: make -j$(cores)
       workingDirectory: build
       name: Make
