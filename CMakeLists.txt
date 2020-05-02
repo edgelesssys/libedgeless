@@ -64,13 +64,13 @@ if (BUILD_TESTS)
     include(GoogleTest)
 
     # ecrypto
-    add_executable(test_crypto
-        tests/test_crypto.cc)
+    add_executable(crypto_test
+        tests/crypto_test.cc)
 
-    target_link_libraries(test_crypto 
+    target_link_libraries(crypto_test 
         gtest
         gtest_main
         edgeless)
 
-    gtest_discover_tests(test_crypto)
+    gtest_discover_tests(crypto_test)
 endif()
