@@ -4,18 +4,39 @@
 #include <immintrin.h>  // _rdrand64_step()
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
+#include <openssl/engine.h>
 
 namespace edgeless {
 namespace crypto {
 
-Key::Key() : rk_(kSizeKey) {
-  // initialize rk_ using _rdrand64_step()
-  const auto p = reinterpret_cast<unsigned long long*>(rk_.data());
-  const auto n_calls = rk_.size() / sizeof(*p);
-  for (auto i = 0ul; i < n_calls; i++)
-    for (auto tries = 0u; !_rdrand64_step(p + i); tries++)
-      if (tries >= kMaxRetriesRand)
-        throw crypto::Error("RDRAND failed to produce randomness");
+RNG::RNG() {
+  ENGINE_load_rdrand();
+  auto eng = ENGINE_by_id("rdrand");
+  if (!eng) {
+    throw crypto::Error("Failed to get RDRAND engine");
+  }
+  if (ENGINE_init(eng) != 1) {
+    ENGINE_finish(eng);
+    throw crypto::Error("Failed to init engine");
+  }
+  if (ENGINE_set_default(eng, ENGINE_METHOD_RAND)!=1) {
+    ENGINE_finish(eng);
+    throw crypto::Error("Failed to set engine");
+  }
+  engine_ = eng;
+}
+
+RNG::~RNG() {
+  ENGINE_finish(reinterpret_cast<ENGINE*>(engine_));
+}
+
+bool RNG::Fill(Buffer b) {
+  std::lock_guard lg(m_);
+  return RAND_bytes(b.data(), b.size()) == 1;
+}
+
+Key::Key(RNG& rng) : rk_(kSizeKey) {
+  rng.Fill(rk_);
 }
 
 Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
@@ -26,7 +47,7 @@ struct KCtx {
   EVP_PKEY_CTX* const p;
   KCtx() : p(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr)) {
     if (!p)
-      throw crypto::Error("Could not allocate PKEY CTX");
+      throw crypto::Error("Failed to allocate PKEY CTX");
   }
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };

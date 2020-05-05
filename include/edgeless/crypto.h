@@ -18,6 +18,19 @@ struct Error : std::logic_error {
 };
 
 /**
+ * Secure random number generator using RDRAND for seeding.
+ */
+class RNG {
+  void* engine_;
+  std::mutex m_;
+public:
+  RNG();
+  ~RNG();
+  //! Fills the given buffer with random bytes. Retuns false on failure.
+  bool Fill(Buffer b);
+};
+
+/**
  * AES-GCM key for encryption, decryption and derivation of new keys.
  */
 class Key {
@@ -25,8 +38,8 @@ class Key {
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
 
-  //! Generate new key using Intel instruction RDRAND.
-  Key();
+  //! Generate new key using the given RNG.
+  explicit Key(RNG& rng);
   //! Set key directly.
   Key(std::vector<uint8_t> rk);
   Key(Key&&) = default;
@@ -85,7 +98,6 @@ class Key {
   static constexpr auto kDefaultSizeIv = 12ul;
 
  protected:
-  static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;
 #ifndef NDEBUG
   // Used for detecting duplicated encryption IVs during testing
