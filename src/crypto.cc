@@ -76,7 +76,7 @@ Key Key::Derive(CBuffer nonce) const {
   assert(size_buf == buf.size());
 
   buf.resize(kSizeKey);
-  return buf;
+  return Key{buf};
 }
 
 

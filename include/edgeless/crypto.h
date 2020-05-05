@@ -3,10 +3,10 @@
 #include <array>
 #include <exception>
 #include <vector>
+#include <mutex>
 #include "buffer.h"
 
 #ifndef NDEBUG
-#include <mutex>
 #include <set>
 #endif
 
@@ -41,7 +41,7 @@ class Key {
   //! Generate new key using the given RNG.
   explicit Key(RNG& rng);
   //! Set key directly.
-  Key(std::vector<uint8_t> rk);
+  explicit Key(std::vector<uint8_t> rk);
   Key(Key&&) = default;
 
   // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates). 
@@ -92,7 +92,7 @@ class Key {
 
   //! Get fixed key for testing key (FOR TESTING ONLY).
   static Key GetTestKey() {
-    return {std::vector<uint8_t>(kSizeKey)};
+    return Key{std::vector<uint8_t>(kSizeKey)};
   }
  
   static constexpr auto kDefaultSizeIv = 12ul;

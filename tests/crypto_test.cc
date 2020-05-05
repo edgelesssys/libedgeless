@@ -11,8 +11,8 @@ TEST(Key, enc_dec) {
   constexpr auto size_v = 1000ul;
   const VB pt_in(size_v, 'a'), iv(12, 'b');
   VB ct(size_v), pt_out(size_v);
-
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   Tag tag;
   tag.fill('t');
 
@@ -42,7 +42,8 @@ TEST(Key, enc_dec_2) {
   edgeless::Buffer ct(ct_and_tag.data(), size_v); 
   edgeless::Buffer tag(ct_and_tag.end().base()-16, 16);
 
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   ASSERT_NO_THROW(key.Encrypt(pt_in, iv, tag, ct));
 
   // change bytes trailing iv
@@ -63,7 +64,8 @@ TEST(Key, enc_dec_2) {
 TEST(Key, enc_dec_inplace) {
   const VB ref(456, 'a'), iv(12, 'b');
   VB buf = ref; 
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   Tag tag;
 
   // encrypt in place
@@ -81,7 +83,8 @@ TEST(Key, enc_dec_with_aad) {
 
   VB aad(999, 'a');
 
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   Tag tag;
   tag.fill('t');
 
@@ -105,7 +108,8 @@ TEST(Key, aad_only) {
 
   VB aad(777, 'a');
 
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   Tag tag;
 
   ASSERT_NO_THROW(key.Encrypt(iv, aad, tag));
@@ -143,7 +147,8 @@ TEST(Key, check_duplicate_iv) {
   const VB pt_in(size_v, 'a'), iv(12, 'b');
   VB ct(size_v), pt_out(size_v);
 
-  const Key key;
+  RNG rng;
+  const Key key(rng);
   Tag tag;
 
   for (int i = 0; i < 10; i++)
@@ -152,5 +157,26 @@ TEST(Key, check_duplicate_iv) {
   for (int i = 0; i < 10; i++)
     ASSERT_THROW(key.Encrypt(pt_in, {(uint8_t*)&i, sizeof(i)}, tag, ct), edgeless::crypto::Error);
 }
-
 #endif
+
+TEST(RNG, basic) {
+  RNG rng0;
+  RNG rng1;
+
+  vector<uint8_t> b0(100), b1(100), b2(100), b3(100);
+
+  ASSERT_TRUE(rng0.Fill(b0));
+  ASSERT_TRUE(rng0.Fill(b1));
+
+  ASSERT_TRUE(rng1.Fill(b2));
+  ASSERT_TRUE(rng1.Fill(b3));
+
+  EXPECT_NE(b0, b1);
+  EXPECT_NE(b0, b2);
+  EXPECT_NE(b0, b3);
+
+  EXPECT_NE(b1, b2);
+  EXPECT_NE(b1, b3);
+
+  EXPECT_NE(b2, b3);
+}
