@@ -22,7 +22,7 @@ void RNG::Init() {
     throw crypto::Error("Failed to get RDRAND engine");
   }
   if (!ENGINE_init(eng)) {
-    ENGINE_finish(eng);
+    ENGINE_free(eng);
     throw crypto::Error("Failed to init engine");
   }
   if (!ENGINE_set_default(eng, ENGINE_METHOD_RAND)) {
