@@ -17,7 +17,7 @@ void RNG::Init() {
     return;
 
   ENGINE_load_rdrand();
-  auto eng = ENGINE_by_id("rdrand");
+  const auto eng = ENGINE_by_id("rdrand");
   if (!eng) {
     throw crypto::Error("Failed to get RDRAND engine");
   }
@@ -52,7 +52,7 @@ void RNG::Cleanup() {
   const std::lock_guard lg(m_);
   if (!engine_)
     return;
-    
+
   ENGINE_finish(static_cast<ENGINE*>(engine_));
   engine_ = nullptr;
 }
