@@ -21,11 +21,11 @@ void RNG::Init() {
   if (!eng) {
     throw crypto::Error("Failed to get RDRAND engine");
   }
-  if (ENGINE_init(eng) != 1) {
+  if (!ENGINE_init(eng)) {
     ENGINE_finish(eng);
     throw crypto::Error("Failed to init engine");
   }
-  if (ENGINE_set_default(eng, ENGINE_METHOD_RAND) != 1) {
+  if (!ENGINE_set_default(eng, ENGINE_METHOD_RAND)) {
     ENGINE_finish(eng);
     throw crypto::Error("Failed to set engine");
   }
