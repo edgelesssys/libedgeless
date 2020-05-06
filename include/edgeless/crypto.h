@@ -45,9 +45,9 @@ class Key {
   static constexpr size_t kSizeKey = 128 / 8;
 
   //! Generate new key using RNG.
-  explicit Key();
+  Key();
   //! Set key directly.
-  explicit Key(std::vector<uint8_t> rk);
+  Key(std::vector<uint8_t> rk);
   Key(Key&&) = default;
 
   // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates).
