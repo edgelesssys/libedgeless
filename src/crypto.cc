@@ -1,15 +1,21 @@
 #include "crypto.h"
 
 #include <assert.h>
-#include <immintrin.h>  // _rdrand64_step()
+#include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
-#include <openssl/engine.h>
 
 namespace edgeless {
 namespace crypto {
 
-RNG::RNG() {
+std::mutex RNG::m_;
+void* RNG::engine_;
+
+void RNG::Init() {
+  const std::lock_guard lg(m_);
+  if (engine_)
+    return;
+
   ENGINE_load_rdrand();
   auto eng = ENGINE_by_id("rdrand");
   if (!eng) {
@@ -19,24 +25,41 @@ RNG::RNG() {
     ENGINE_finish(eng);
     throw crypto::Error("Failed to init engine");
   }
-  if (ENGINE_set_default(eng, ENGINE_METHOD_RAND)!=1) {
+  if (ENGINE_set_default(eng, ENGINE_METHOD_RAND) != 1) {
     ENGINE_finish(eng);
     throw crypto::Error("Failed to set engine");
   }
   engine_ = eng;
 }
 
-RNG::~RNG() {
-  ENGINE_finish(reinterpret_cast<ENGINE*>(engine_));
-}
+// NOTE: the OpenSSL docs state that the default RAND_DRBG and thus RAND_bytes and RAND_priv_bytes are thread-safe: https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html
 
-bool RNG::Fill(Buffer b) {
-  std::lock_guard lg(m_);
+bool RNG::FillPublic(Buffer b) {
+  if (!engine_)
+    Init();
+
   return RAND_bytes(b.data(), b.size()) == 1;
 }
 
-Key::Key(RNG& rng) : rk_(kSizeKey) {
-  rng.Fill(rk_);
+bool RNG::FillPrivate(Buffer b) {
+  if (!engine_)
+    Init();
+
+  return RAND_priv_bytes(b.data(), b.size()) == 1;
+}
+
+void RNG::Cleanup() {
+  const std::lock_guard lg(m_);
+  if (!engine_)
+    return;
+    
+  ENGINE_finish(static_cast<ENGINE*>(engine_));
+  engine_ = nullptr;
+}
+
+Key::Key() : rk_(kSizeKey) {
+  if (!RNG::FillPrivate(rk_))
+    throw crypto::Error("Failed to generate key");
 }
 
 Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
@@ -79,7 +102,6 @@ Key Key::Derive(CBuffer nonce) const {
   return Key{buf};
 }
 
-
 struct CCtx {
   EVP_CIPHER_CTX* const p;
 
@@ -90,15 +112,14 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
-template<typename F_INIT>
-void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {  
+template <typename F_INIT>
+void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {
   assert(rk.size() == Key::kSizeKey);
   // in case of a default IV size, we can set everything up in one call
   if (iv.size() == Key::kDefaultSizeIv) {
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
       throw crypto::Error("Failed to init context (enc, default IV size).");
-  } 
-  else {
+  } else {
     assert(iv.size());
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) <= 0)
       throw crypto::Error("Failed to init context.");
@@ -112,7 +133,7 @@ void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, 
 bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
   Init(EVP_DecryptInit_ex, ctx, rk_, iv);
-  
+
   // optionally add aad
   if (aad.size()) {
     int aad_s;
@@ -174,7 +195,7 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
   // encrypt
   assert(ciphertext.size() >= plaintext.size());
   if (plaintext.size()) {
-    int ciphertext_s; 
+    int ciphertext_s;
     if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &ciphertext_s, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
     assert(ciphertext_s == plaintext.size());

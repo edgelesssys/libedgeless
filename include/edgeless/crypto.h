@@ -2,8 +2,9 @@
 
 #include <array>
 #include <exception>
-#include <vector>
 #include <mutex>
+#include <vector>
+
 #include "buffer.h"
 
 #ifndef NDEBUG
@@ -21,13 +22,18 @@ struct Error : std::logic_error {
  * Secure random number generator using RDRAND for seeding.
  */
 class RNG {
-  void* engine_;
-  std::mutex m_;
-public:
-  RNG();
-  ~RNG();
-  //! Fills the given buffer with random bytes. Retuns false on failure.
-  bool Fill(Buffer b);
+ public:
+  //! Fill the buffer with cryptographic randomness that is meant to remain private (e.g., for key generation); returns false on failure.
+  static bool FillPrivate(Buffer b);
+  //! Fill the buffer with cryptographic randomness that is meant to be public (e.g., for nonces); returns false on failure.
+  static bool FillPublic(Buffer b);
+  //! Frees resources (i.e. engine_); you can still call Fill() afterwards
+  static void Cleanup();
+
+ private:
+  static void Init();
+  static void* engine_;
+  static std::mutex m_;
 };
 
 /**
@@ -38,13 +44,13 @@ class Key {
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
 
-  //! Generate new key using the given RNG.
-  explicit Key(RNG& rng);
+  //! Generate new key using RNG.
+  explicit Key();
   //! Set key directly.
   explicit Key(std::vector<uint8_t> rk);
   Key(Key&&) = default;
 
-  // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates). 
+  // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates).
   Key(const Key&) = delete;
   Key operator=(const Key&) = delete;
 
@@ -94,7 +100,7 @@ class Key {
   static Key GetTestKey() {
     return Key{std::vector<uint8_t>(kSizeKey)};
   }
- 
+
   static constexpr auto kDefaultSizeIv = 12ul;
 
  protected:
