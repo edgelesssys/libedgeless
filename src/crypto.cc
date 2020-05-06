@@ -9,11 +9,11 @@ namespace edgeless {
 namespace crypto {
 
 std::mutex RNG::m_;
-void* RNG::engine_;
+std::atomic<void*> RNG::engine_;
 
 void RNG::Init() {
   const std::lock_guard lg(m_);
-  if (engine_)
+  if (!engine_)
     return;
 
   ENGINE_load_rdrand();
@@ -53,7 +53,7 @@ void RNG::Cleanup() {
   if (!engine_)
     return;
 
-  ENGINE_finish(static_cast<ENGINE*>(engine_));
+  ENGINE_finish(static_cast<ENGINE*>(engine_.load()));
   engine_ = nullptr;
 }
 

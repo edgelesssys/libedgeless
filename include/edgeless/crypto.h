@@ -4,6 +4,7 @@
 #include <exception>
 #include <mutex>
 #include <vector>
+#include <atomic>
 
 #include "buffer.h"
 
@@ -32,7 +33,7 @@ class RNG {
 
  private:
   static void Init();
-  static void* engine_;
+  static std::atomic<void*> engine_;
   static std::mutex m_;
 };
 
