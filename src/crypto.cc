@@ -56,6 +56,9 @@ Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
   assert(rk_.size() >= kSizeKey);
 }
 
+Key::Key(Key&& other) : rk_(std::move(other.rk_)) {
+}
+
 struct KCtx {
   EVP_PKEY_CTX* const p;
   KCtx() : p(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr)) {

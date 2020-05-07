@@ -45,7 +45,7 @@ class Key {
   Key();
   //! Set key directly.
   Key(std::vector<uint8_t> rk);
-  Key(Key&&) = default;
+  Key(Key&&);
 
   // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates).
   Key(const Key&) = delete;
