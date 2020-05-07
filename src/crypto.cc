@@ -1,21 +1,55 @@
 #include "crypto.h"
 
 #include <assert.h>
-#include <immintrin.h>  // _rdrand64_step()
+#include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 
 namespace edgeless {
 namespace crypto {
 
+void RNG::Init() {
+  static std::mutex m;
+  static std::atomic<bool> initialized;
+
+  if (initialized.load())
+    return;
+  const std::lock_guard lg(m);
+  if (initialized.load())
+    return;
+
+  /* TODO: according to ASAN, this leaks an ENGINE object. 
+  Not sure how to deallocate it. ENGINE_cleanup() etc don't help. */
+  ENGINE_load_rdrand();
+  const auto eng = ENGINE_by_id("rdrand");
+  if (!eng) {
+    throw crypto::Error("Failed to get RDRAND engine");
+  }
+  // ENGINEs are ref counted
+  if (!ENGINE_init(eng)) {
+    throw crypto::Error("Failed to init engine");
+  }
+  const auto succ = ENGINE_set_default_RAND(eng);
+  ENGINE_finish(eng);
+  if (!succ) {
+    throw crypto::Error("Failed to set engine");
+  }
+  initialized = true;
+}
+
+bool RNG::FillPublic(Buffer b) {
+  Init();
+  return RAND_bytes(b.data(), b.size()) == 1;
+}
+
+bool RNG::FillPrivate(Buffer b) {
+  Init();
+  return RAND_priv_bytes(b.data(), b.size()) == 1;
+}
+
 Key::Key() : rk_(kSizeKey) {
-  // initialize rk_ using _rdrand64_step()
-  const auto p = reinterpret_cast<unsigned long long*>(rk_.data());
-  const auto n_calls = rk_.size() / sizeof(*p);
-  for (auto i = 0ul; i < n_calls; i++)
-    for (auto tries = 0u; !_rdrand64_step(p + i); tries++)
-      if (tries >= kMaxRetriesRand)
-        throw crypto::Error("RDRAND failed to produce randomness");
+  if (!RNG::FillPrivate(rk_))
+    throw crypto::Error("Failed to generate key");
 }
 
 Key::Key(std::vector<uint8_t> rk) : rk_(rk) {
@@ -26,7 +60,7 @@ struct KCtx {
   EVP_PKEY_CTX* const p;
   KCtx() : p(EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr)) {
     if (!p)
-      throw crypto::Error("Could not allocate PKEY CTX");
+      throw crypto::Error("Failed to allocate PKEY CTX");
   }
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };
@@ -55,9 +89,8 @@ Key Key::Derive(CBuffer nonce) const {
   assert(size_buf == buf.size());
 
   buf.resize(kSizeKey);
-  return buf;
+  return Key{buf};
 }
-
 
 struct CCtx {
   EVP_CIPHER_CTX* const p;
@@ -69,15 +102,14 @@ struct CCtx {
   ~CCtx() { EVP_CIPHER_CTX_free(p); }
 };
 
-template<typename F_INIT>
-void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {  
+template <typename F_INIT>
+void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, const CBuffer iv) {
   assert(rk.size() == Key::kSizeKey);
   // in case of a default IV size, we can set everything up in one call
   if (iv.size() == Key::kDefaultSizeIv) {
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, rk.data(), iv.data()) <= 0)
       throw crypto::Error("Failed to init context (enc, default IV size).");
-  } 
-  else {
+  } else {
     assert(iv.size());
     if (f_init(ctx.p, EVP_aes_128_gcm(), nullptr, nullptr, nullptr) <= 0)
       throw crypto::Error("Failed to init context.");
@@ -91,7 +123,7 @@ void Init(const F_INIT f_init, const CCtx& ctx, const std::vector<uint8_t>& rk, 
 bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buffer plaintext) const {
   CCtx ctx;
   Init(EVP_DecryptInit_ex, ctx, rk_, iv);
-  
+
   // optionally add aad
   if (aad.size()) {
     int aad_s;
@@ -153,7 +185,7 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
   // encrypt
   assert(ciphertext.size() >= plaintext.size());
   if (plaintext.size()) {
-    int ciphertext_s; 
+    int ciphertext_s;
     if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &ciphertext_s, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
     assert(ciphertext_s == plaintext.size());

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <exception>
 #include <vector>
+
 #include "buffer.h"
 
 #ifndef NDEBUG
@@ -18,6 +20,20 @@ struct Error : std::logic_error {
 };
 
 /**
+ * Secure random number generator using RDRAND for seeding.
+ */
+class RNG {
+ public:
+  //! Fill the buffer with cryptographic randomness that is meant to remain private (e.g., for key generation); returns false on failure.
+  static bool FillPrivate(Buffer b);
+  //! Fill the buffer with cryptographic randomness that is meant to be public (e.g., for nonces); returns false on failure.
+  static bool FillPublic(Buffer b);
+
+ private:
+  static void Init();
+};
+
+/**
  * AES-GCM key for encryption, decryption and derivation of new keys.
  */
 class Key {
@@ -25,13 +41,13 @@ class Key {
   static constexpr size_t kSizeTag = 128 / 8;
   static constexpr size_t kSizeKey = 128 / 8;
 
-  //! Generate new key using Intel instruction RDRAND.
+  //! Generate new key using RNG.
   Key();
   //! Set key directly.
   Key(std::vector<uint8_t> rk);
   Key(Key&&) = default;
 
-  // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates). 
+  // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates).
   Key(const Key&) = delete;
   Key operator=(const Key&) = delete;
 
@@ -79,13 +95,12 @@ class Key {
 
   //! Get fixed key for testing key (FOR TESTING ONLY).
   static Key GetTestKey() {
-    return {std::vector<uint8_t>(kSizeKey)};
+    return Key{std::vector<uint8_t>(kSizeKey)};
   }
- 
+
   static constexpr auto kDefaultSizeIv = 12ul;
 
  protected:
-  static constexpr auto kMaxRetriesRand = 8u;
   std::vector<uint8_t> rk_;
 #ifndef NDEBUG
   // Used for detecting duplicated encryption IVs during testing

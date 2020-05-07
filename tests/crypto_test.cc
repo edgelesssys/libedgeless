@@ -1,6 +1,11 @@
-#include <algorithm>
-#include <gtest/gtest.h>
 #include "crypto.h"
+
+#include <gtest/gtest.h>
+#include <openssl/engine.h>
+
+#include <algorithm>
+#include <thread>
+#include <vector>
 
 using namespace std;
 using namespace edgeless::crypto;
@@ -39,8 +44,8 @@ TEST(Key, enc_dec_2) {
   fill(iv.begin(), iv.end(), 'x');
 
   // construct an 8-byte IV where we can change trailing bytes
-  edgeless::Buffer ct(ct_and_tag.data(), size_v); 
-  edgeless::Buffer tag(ct_and_tag.end().base()-16, 16);
+  edgeless::Buffer ct(ct_and_tag.data(), size_v);
+  edgeless::Buffer tag(ct_and_tag.end().base() - 16, 16);
 
   const Key key;
   ASSERT_NO_THROW(key.Encrypt(pt_in, iv, tag, ct));
@@ -62,7 +67,7 @@ TEST(Key, enc_dec_2) {
 
 TEST(Key, enc_dec_inplace) {
   const VB ref(456, 'a'), iv(12, 'b');
-  VB buf = ref; 
+  VB buf = ref;
   const Key key;
   Tag tag;
 
@@ -121,7 +126,7 @@ TEST(Key, reference_vectors) {
   Key key({0x88, 0xEE, 0x08, 0x7F, 0xD9, 0x5D, 0xA9, 0xFB, 0xF6, 0x72, 0x5A, 0xA9, 0xD7, 0x57, 0xB0, 0xCD});
 
   const VB plaintext = {0x08, 0x00, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x00, 0x08};
-  
+
   const VB aad = {0x68, 0xF2, 0xE7, 0x76, 0x96, 0xCE, 0x7A, 0xE8, 0xE2, 0xCA, 0x4E, 0xC5, 0x88, 0xE5, 0x4D, 0x00, 0x2E, 0x58, 0x49, 0x5C};
 
   const VB iv = {0x7A, 0xE8, 0xE2, 0xCA, 0x4E, 0xC5, 0x00, 0x01, 0x2E, 0x58, 0x49, 0x5C};
@@ -154,3 +159,37 @@ TEST(Key, check_duplicate_iv) {
 }
 
 #endif
+
+TEST(RNG, basic) {
+
+  vector<uint8_t> b0(100), b1(100), b2(100);
+  ASSERT_TRUE(RNG::FillPublic(b0));
+  const auto eng_rand = ENGINE_by_id("rdrand");
+  const auto eng_default0 = ENGINE_get_default_RAND();
+  EXPECT_EQ(eng_rand, eng_default0);
+
+  ASSERT_TRUE(RNG::FillPublic(b1));
+  const auto eng_default1 = ENGINE_get_default_RAND();
+  EXPECT_EQ(eng_rand, eng_default1);
+
+  ASSERT_TRUE(RNG::FillPublic(b2));
+
+  EXPECT_NE(b0, b1);
+  EXPECT_NE(b0, b2);
+  EXPECT_NE(b1, b2);
+}
+
+TEST(RNG, multithreaded) {
+  vector<thread> threads;
+  for (int i = 0; i < 10; i++)
+    threads.emplace_back([] {
+      for (int i = 0; i < 10; i++) {
+        vector<uint8_t> b0(20), b1(20);
+        ASSERT_TRUE(RNG::FillPublic(b0));
+        ASSERT_TRUE(RNG::FillPublic(b1));
+        EXPECT_NE(b0, b1);
+      }
+    });
+  for (auto& t : threads)
+    t.join();
+}
