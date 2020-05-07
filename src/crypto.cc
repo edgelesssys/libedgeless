@@ -8,12 +8,14 @@
 namespace edgeless {
 namespace crypto {
 
-std::mutex RNG::m_;
-std::atomic<void*> RNG::engine_;
-
 void RNG::Init() {
-  const std::lock_guard lg(m_);
-  if (!engine_)
+  static std::mutex m;
+  static std::atomic<bool> initialized;
+
+  if (initialized.load())
+    return;
+  const std::lock_guard lg(m);
+  if (initialized.load())
     return;
 
   ENGINE_load_rdrand();
@@ -21,40 +23,26 @@ void RNG::Init() {
   if (!eng) {
     throw crypto::Error("Failed to get RDRAND engine");
   }
+  // ENGINEs are ref counted
   if (!ENGINE_init(eng)) {
-    ENGINE_free(eng);
     throw crypto::Error("Failed to init engine");
   }
-  if (!ENGINE_set_default(eng, ENGINE_METHOD_RAND)) {
-    ENGINE_finish(eng);
+  const auto succ = ENGINE_set_default_RAND(eng);
+  ENGINE_finish(eng);
+  if (!succ) {
     throw crypto::Error("Failed to set engine");
   }
-  engine_ = eng;
+  initialized = true;
 }
 
-// NOTE: the OpenSSL docs state that the default RAND_DRBG and thus RAND_bytes and RAND_priv_bytes are thread-safe: https://www.openssl.org/docs/man1.1.1/man7/RAND_DRBG.html
-
 bool RNG::FillPublic(Buffer b) {
-  if (!engine_)
-    Init();
-
+  Init();
   return RAND_bytes(b.data(), b.size()) == 1;
 }
 
 bool RNG::FillPrivate(Buffer b) {
-  if (!engine_)
-    Init();
-
+  Init();
   return RAND_priv_bytes(b.data(), b.size()) == 1;
-}
-
-void RNG::Cleanup() {
-  const std::lock_guard lg(m_);
-  if (!engine_)
-    return;
-
-  ENGINE_finish(static_cast<ENGINE*>(engine_.load()));
-  engine_ = nullptr;
 }
 
 Key::Key() : rk_(kSizeKey) {

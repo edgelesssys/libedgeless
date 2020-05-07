@@ -1,6 +1,7 @@
 #include "crypto.h"
 
 #include <gtest/gtest.h>
+#include <openssl/engine.h>
 
 #include <algorithm>
 #include <thread>
@@ -160,11 +161,16 @@ TEST(Key, check_duplicate_iv) {
 #endif
 
 TEST(RNG, basic) {
+  const auto eng_rand = ENGINE_by_id("rdrand");
   vector<uint8_t> b0(100), b1(100), b2(100);
-
   ASSERT_TRUE(RNG::FillPublic(b0));
+  const auto eng_default0 = ENGINE_get_default_RAND();
+  EXPECT_EQ(eng_rand, eng_default0);
+
   ASSERT_TRUE(RNG::FillPublic(b1));
-  RNG::Cleanup();
+  const auto eng_default1 = ENGINE_get_default_RAND();
+  EXPECT_EQ(eng_rand, eng_default1);
+
   ASSERT_TRUE(RNG::FillPublic(b2));
 
   EXPECT_NE(b0, b1);
@@ -179,7 +185,6 @@ TEST(RNG, multithreaded) {
       for (int i = 0; i < 10; i++) {
         vector<uint8_t> b0(20), b1(20);
         ASSERT_TRUE(RNG::FillPublic(b0));
-        RNG::Cleanup();
         ASSERT_TRUE(RNG::FillPublic(b1));
         EXPECT_NE(b0, b1);
       }

@@ -1,14 +1,14 @@
 #pragma once
 
 #include <array>
-#include <exception>
-#include <mutex>
-#include <vector>
 #include <atomic>
+#include <exception>
+#include <vector>
 
 #include "buffer.h"
 
 #ifndef NDEBUG
+#include <mutex>
 #include <set>
 #endif
 
@@ -28,13 +28,9 @@ class RNG {
   static bool FillPrivate(Buffer b);
   //! Fill the buffer with cryptographic randomness that is meant to be public (e.g., for nonces); returns false on failure.
   static bool FillPublic(Buffer b);
-  //! Frees resources (i.e. engine_); you can still call Fill() afterwards
-  static void Cleanup();
 
  private:
   static void Init();
-  static std::atomic<void*> engine_;
-  static std::mutex m_;
 };
 
 /**
