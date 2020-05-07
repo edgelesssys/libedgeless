@@ -18,6 +18,8 @@ void RNG::Init() {
   if (initialized.load())
     return;
 
+  /* TODO: according to ASAN, this leaks an ENGINE object. 
+  Not sure how to deallocate it. ENGINE_cleanup() etc don't help. */
   ENGINE_load_rdrand();
   const auto eng = ENGINE_by_id("rdrand");
   if (!eng) {
