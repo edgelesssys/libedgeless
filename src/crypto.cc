@@ -37,19 +37,20 @@ void RNG::Init() {
   initialized = true;
 }
 
-bool RNG::FillPublic(Buffer b) {
+void RNG::FillPublic(Buffer b) {
   Init();
-  return RAND_bytes(b.data(), b.size()) == 1;
+  if (RAND_bytes(b.data(), b.size()) != 1)
+    throw crypto::Error("Failed to generate public random bytes");
 }
 
-bool RNG::FillPrivate(Buffer b) {
+void RNG::FillPrivate(Buffer b) {
   Init();
-  return RAND_priv_bytes(b.data(), b.size()) == 1;
+  if (RAND_priv_bytes(b.data(), b.size()) != 1)
+    throw crypto::Error("Failed to generate private random bytes");
 }
 
 Key::Key() : rk_(kSizeKey) {
-  if (!RNG::FillPrivate(rk_))
-    throw crypto::Error("Failed to generate key");
+  RNG::FillPrivate(rk_);
 }
 
 Key::Key(std::vector<uint8_t> rk) : rk_(rk) {

@@ -24,10 +24,10 @@ struct Error : std::logic_error {
  */
 class RNG {
  public:
-  //! Fill the buffer with cryptographic randomness that is meant to remain private (e.g., for key generation); returns false on failure.
-  static bool FillPrivate(Buffer b);
-  //! Fill the buffer with cryptographic randomness that is meant to be public (e.g., for nonces); returns false on failure.
-  static bool FillPublic(Buffer b);
+  //! Fill the buffer with cryptographic randomness that is meant to remain private (e.g., for key generation).
+  static void FillPrivate(Buffer b);
+  //! Fill the buffer with cryptographic randomness that is meant to be public (e.g., for nonces).
+  static void FillPublic(Buffer b);
 
  private:
   static void Init();
