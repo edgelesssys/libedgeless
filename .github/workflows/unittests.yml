@@ -1,0 +1,30 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+    - ci
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Setup build directory
+      run: |
+        mkdir build
+       
+    - name: CMake and Ninja
+      run: |
+        cmake -GNinja ..
+        ninja
+      working-directory: build
+
+    - name: Ctest
+      run: ctest
+      working-directory: build
