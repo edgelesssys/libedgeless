@@ -22,7 +22,7 @@ jobs:
        
     - name: CMake and Ninja
       run: |
-        cmake -GNinja ..
+        cmake -GNinja -DBUILD_TESTS=ON ..
         ninja
       working-directory: build
 
