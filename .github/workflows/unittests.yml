@@ -15,8 +15,9 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Setup build directory
+    - name: Install dependencies and setup build directory
       run: |
+        sudo apt install -y ninja-build
         mkdir build
        
     - name: CMake and Ninja
