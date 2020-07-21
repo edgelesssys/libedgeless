@@ -153,7 +153,8 @@ template <typename E, std::size_t S>
 struct span_storage {
     constexpr span_storage() noexcept = default;
 
-    constexpr span_storage(E* ptr, std::size_t /*unused*/) noexcept : ptr(ptr)
+    constexpr span_storage(E* p_ptr, std::size_t /*unused*/) noexcept
+       : ptr(p_ptr)
     {}
 
     E* ptr = nullptr;
@@ -164,8 +165,8 @@ template <typename E>
 struct span_storage<E, dynamic_extent> {
     constexpr span_storage() noexcept = default;
 
-    constexpr span_storage(E* ptr, std::size_t size) noexcept
-        : ptr(ptr), size(size)
+    constexpr span_storage(E* p_ptr, std::size_t p_size) noexcept
+        : ptr(p_ptr), size(p_size)
     {}
 
     E* ptr = nullptr;
@@ -261,7 +262,11 @@ struct is_container_element_type_compatible : std::false_type {};
 
 template <typename T, typename E>
 struct is_container_element_type_compatible<
-    T, E, void_t<decltype(detail::data(std::declval<T>()))>>
+    T, E,
+    typename std::enable_if<
+        !std::is_same<typename std::remove_cv<decltype(
+                          detail::data(std::declval<T>()))>::type,
+                      void>::value>::type>
     : std::is_convertible<
           remove_pointer_t<decltype(detail::data(std::declval<T>()))> (*)[],
           E (*)[]> {};
@@ -291,7 +296,7 @@ public:
     // constants and types
     using element_type = ElementType;
     using value_type = typename std::remove_cv<ElementType>::type;
-    using index_type = std::size_t;
+    using size_type = std::size_t;
     using difference_type = std::ptrdiff_t;
     using pointer = element_type*;
     using const_pointer = const element_type*;
@@ -301,7 +306,7 @@ public:
     using reverse_iterator = std::reverse_iterator<iterator>;
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-    static constexpr index_type extent = Extent;
+    static constexpr size_type extent = Extent;
 
     // [span.cons], span constructors, copy, assignment, and destructor
     template <
@@ -310,7 +315,7 @@ public:
     constexpr span() noexcept
     {}
 
-    TCB_SPAN_CONSTEXPR11 span(pointer ptr, index_type count)
+    TCB_SPAN_CONSTEXPR11 span(pointer ptr, size_type count)
         : storage_(ptr, count)
     {
         TCB_SPAN_EXPECT(extent == dynamic_extent || count == extent);
@@ -424,21 +429,21 @@ public:
     }
 
     TCB_SPAN_CONSTEXPR11 span<element_type, dynamic_extent>
-    first(index_type count) const
+    first(size_type count) const
     {
         TCB_SPAN_EXPECT(count <= size());
         return {data(), count};
     }
 
     TCB_SPAN_CONSTEXPR11 span<element_type, dynamic_extent>
-    last(index_type count) const
+    last(size_type count) const
     {
         TCB_SPAN_EXPECT(count <= size());
         return {data() + (size() - count), count};
     }
 
     TCB_SPAN_CONSTEXPR11 span<element_type, dynamic_extent>
-    subspan(index_type offset, index_type count = dynamic_extent) const
+    subspan(size_type offset, size_type count = dynamic_extent) const
     {
         TCB_SPAN_EXPECT(offset <= size() &&
                         (count == dynamic_extent || offset + count <= size()));
@@ -447,9 +452,9 @@ public:
     }
 
     // [span.obs], span observers
-    constexpr index_type size() const noexcept { return storage_.size; }
+    constexpr size_type size() const noexcept { return storage_.size; }
 
-    constexpr index_type size_bytes() const noexcept
+    constexpr size_type size_bytes() const noexcept
     {
         return size() * sizeof(element_type);
     }
@@ -460,7 +465,7 @@ public:
     }
 
     // [span.elem], span element access
-    TCB_SPAN_CONSTEXPR11 reference operator[](index_type idx) const
+    TCB_SPAN_CONSTEXPR11 reference operator[](size_type idx) const
     {
         TCB_SPAN_EXPECT(idx < size());
         return *(data() + idx);
@@ -574,67 +579,6 @@ constexpr span<const typename Container::value_type>
 make_span(const Container& cont)
 {
     return {cont};
-}
-
-/* Comparison operators */
-// Implementation note: the implementations of == and < are equivalent to
-// 4-legged std::equal and std::lexicographical_compare respectively
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator==(span<T, X> lhs, span<U, Y> rhs)
-{
-    if (lhs.size() != rhs.size()) {
-        return false;
-    }
-
-    for (std::size_t i = 0; i < lhs.size(); i++) {
-        if (lhs[i] != rhs[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator!=(span<T, X> lhs, span<U, Y> rhs)
-{
-    return !(lhs == rhs);
-}
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator<(span<T, X> lhs, span<U, Y> rhs)
-{
-    // No std::min to avoid dragging in <algorithm>
-    const std::size_t size = lhs.size() < rhs.size() ? lhs.size() : rhs.size();
-
-    for (std::size_t i = 0; i < size; i++) {
-        if (lhs[i] < rhs[i]) {
-            return true;
-        }
-        if (lhs[i] > rhs[i]) {
-            return false;
-        }
-    }
-    return lhs.size() < rhs.size();
-}
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator<=(span<T, X> lhs, span<U, Y> rhs)
-{
-    return !(rhs < lhs);
-}
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator>(span<T, X> lhs, span<U, Y> rhs)
-{
-    return rhs < lhs;
-}
-
-template <typename T, std::size_t X, typename U, std::size_t Y>
-TCB_SPAN_CONSTEXPR14 bool operator>=(span<T, X> lhs, span<U, Y> rhs)
-{
-    return !(lhs < rhs);
 }
 
 template <typename ElementType, std::size_t Extent>
