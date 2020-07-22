@@ -5,6 +5,8 @@
 #include <openssl/evp.h>
 #include <openssl/kdf.h>
 
+#include <mutex>
+
 namespace edgeless {
 namespace crypto {
 
@@ -18,7 +20,7 @@ void RNG::Init() {
   if (initialized.load())
     return;
 
-  /* TODO: according to ASAN, this leaks an ENGINE object. 
+  /* TODO: according to ASAN, this leaks an ENGINE object.
   Not sure how to deallocate it. ENGINE_cleanup() etc don't help. */
   ENGINE_load_rdrand();
   const auto eng = ENGINE_by_id("rdrand");
@@ -133,7 +135,7 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
     int aad_s;
     if (EVP_DecryptUpdate(ctx.p, nullptr, &aad_s, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD.");
-    assert(aad_s == aad.size());
+    assert(static_cast<size_t>(aad_s) == aad.size());
   }
 
   // decrypt
@@ -142,7 +144,7 @@ bool Key::Decrypt(CBuffer ciphertext, CBuffer iv, CBuffer aad, CBuffer tag, Buff
     int plaintext_s;
     if (EVP_DecryptUpdate(ctx.p, plaintext.data(), &plaintext_s, ciphertext.data(), ciphertext.size()) <= 0)
       throw crypto::Error("Failed to set decrypt.");
-    assert(plaintext_s == ciphertext.size());
+    assert(static_cast<size_t>(plaintext_s) == ciphertext.size());
   }
 
   // check tag
@@ -183,7 +185,7 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
     int aad_s;
     if (EVP_EncryptUpdate(ctx.p, nullptr, &aad_s, aad.data(), aad.size()) <= 0)
       throw crypto::Error("Failed to set AAD (enc).");
-    assert(aad_s == aad.size());
+    assert(static_cast<size_t>(aad_s) == aad.size());
   }
 
   // encrypt
@@ -192,7 +194,7 @@ void Key::Encrypt(CBuffer plaintext, CBuffer iv, CBuffer aad, Buffer tag, Buffer
     int ciphertext_s;
     if (EVP_EncryptUpdate(ctx.p, ciphertext.data(), &ciphertext_s, plaintext.data(), plaintext.size()) <= 0)
       throw crypto::Error("Failed to encrypt.");
-    assert(ciphertext_s == plaintext.size());
+    assert(static_cast<size_t>(ciphertext_s) == plaintext.size());
   }
 
   int final_s;

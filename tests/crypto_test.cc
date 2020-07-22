@@ -161,7 +161,6 @@ TEST(Key, check_duplicate_iv) {
 #endif
 
 TEST(RNG, basic) {
-
   vector<uint8_t> b0(100), b1(100), b2(100);
   ASSERT_NO_THROW(RNG::FillPublic(b0));
   const auto eng_rand = ENGINE_by_id("rdrand");

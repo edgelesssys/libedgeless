@@ -56,7 +56,7 @@ class Key {
 
   /**
    * Decrypt with AAD.
-   * 
+   *
    * @param ciphertext ciphertext buffer
    * @param iv initialization vector buffer
    * @param aad additional authenticated data buffer
@@ -76,7 +76,7 @@ class Key {
 
   /**
    * Encrypt with AAD.
-   * 
+   *
    * @param plaintext plaintext buffer
    * @param iv initialization vector buffer
    * MUST NEVER repeat for an encryption key!

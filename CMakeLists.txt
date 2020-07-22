@@ -9,6 +9,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+add_compile_options(-Werror -Wall -Wextra -pedantic)
 
 #
 # Targets
@@ -67,7 +68,7 @@ if (BUILD_TESTS)
     add_executable(crypto_test
         tests/crypto_test.cc)
 
-    target_link_libraries(crypto_test 
+    target_link_libraries(crypto_test
         gtest
         gtest_main
         edgeless)
