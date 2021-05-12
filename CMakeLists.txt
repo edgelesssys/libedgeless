@@ -1,77 +1,50 @@
 cmake_minimum_required(VERSION 3.10)
+project(libedgeless)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options(-Wall -Wextra -pedantic -Werror)
 
-project(libedgeless C CXX)
-set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/edgeless)
+if(NOT LIBEDG_NOTEST)
+  execute_process(
+    COMMAND git submodule update --init 3rdparty/googletest
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-add_compile_options(-Werror -Wall -Wextra -pedantic)
+  set(GOOGLETEST_VERSION 1.10.0)
+  add_subdirectory(3rdparty/googletest/googletest)
+endif()
 
 #
-# Targets
+# lib
 #
-set(sources ${SRC}/crypto.cc)
-set(compileoptions "-mrdrnd")
-set(libs crypto)
-add_library(edgeless STATIC
-    ${sources})
 
-# Object library to be incorporated into other libraries
 add_library(edgeless_o OBJECT
-    ${sources})
+  src/crypto.cc)
 
-target_compile_options(edgeless
-    PUBLIC ${compileoptions})
+target_include_directories(edgeless_o
+  PUBLIC include
+  PRIVATE include/edgeless)
 
-target_compile_options(edgeless_o
-    PUBLIC ${compileoptions})
+target_link_libraries(edgeless_o crypto)
 
-# link OpenSSL's crypto lib
-# TODO: check for presence
-target_link_libraries(edgeless
-    PUBLIC ${libs})
-
-target_link_libraries(edgeless_o
-    PUBLIC ${libs})
+add_library(edgeless)
+target_link_libraries(edgeless edgeless_o)
 
 #
-# Install
+# test
 #
-install(
-  TARGETS edgeless
-  EXPORT edgeless
-  DESTINATION edgeless
-)
 
-install(
-  EXPORT edgeless
-  DESTINATION edgeless
-  NAMESPACE edgeless::
-)
+if(NOT LIBEDG_NOTEST)
+  add_executable(edgeless_test
+    src/crypto_test.cc)
 
-#
-# Tests
-#
-option(BUILD_TESTS "Build tests" OFF)
-if (BUILD_TESTS)
-    enable_testing()
-    set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
-    set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest ./googletest)
-    include(GoogleTest)
+  target_link_libraries(edgeless_test edgeless gtest_main)
 
-    # ecrypto
-    add_executable(crypto_test
-        tests/crypto_test.cc)
-
-    target_link_libraries(crypto_test
-        gtest
-        gtest_main
-        edgeless)
-
-    gtest_discover_tests(crypto_test)
+  include(GoogleTest)
+  enable_testing()
+  gtest_discover_tests(edgeless_test)
 endif()
