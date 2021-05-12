@@ -7,6 +7,7 @@ This C++ library contains utility modules that are meant to be re-used in differ
 ## Build
 
 ```bash
+sudo apt install clang-tidy-10
 mkdir build
 cd build
 cmake ..

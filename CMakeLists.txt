@@ -16,6 +16,8 @@ if(NOT LIBEDG_NOTEST)
 
   set(GOOGLETEST_VERSION 1.10.0)
   add_subdirectory(3rdparty/googletest/googletest)
+
+  set(CMAKE_CXX_CLANG_TIDY clang-tidy-10)
 endif()
 
 #

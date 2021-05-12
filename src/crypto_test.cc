@@ -11,8 +11,8 @@ using namespace edgeless::crypto;
 
 using VB = vector<uint8_t>;
 
-TEST(Key, enc_dec) {
-  constexpr auto size_v = 1000ul;
+TEST(Key, EncDec) {
+  constexpr size_t size_v = 1000;
   const VB pt_in(size_v, 'a'), iv(12, 'b');
   VB ct(size_v), pt_out(size_v);
 
@@ -35,8 +35,8 @@ TEST(Key, enc_dec) {
   EXPECT_EQ(pt_in, pt_out);
 }
 
-TEST(Key, enc_dec_2) {
-  constexpr auto size_v = 1053ul;
+TEST(Key, EncDec2) {
+  constexpr size_t size_v = 1053;
   const VB pt_in(size_v, 'a');
   VB ct_and_tag(size_v + 16), pt_out(size_v);
   VB iv(8);
@@ -64,7 +64,7 @@ TEST(Key, enc_dec_2) {
   EXPECT_EQ(pt_in, pt_out);
 }
 
-TEST(Key, enc_dec_inplace) {
+TEST(Key, EncDecInplace) {
   const VB ref(456, 'a'), iv(12, 'b');
   VB buf = ref;
   const Key key;
@@ -78,8 +78,8 @@ TEST(Key, enc_dec_inplace) {
   EXPECT_EQ(buf, ref);
 }
 
-TEST(Key, enc_dec_with_aad) {
-  constexpr auto size_v = 123ul;
+TEST(Key, EncDecWithAad) {
+  constexpr size_t size_v = 123;
   const VB pt_in(size_v, 'a'), iv(66, 'b');
   VB ct(size_v), pt_out(size_v);
 
@@ -104,7 +104,7 @@ TEST(Key, enc_dec_with_aad) {
   EXPECT_EQ(pt_in, pt_out);
 }
 
-TEST(Key, aad_only) {
+TEST(Key, AadOnly) {
   const VB iv(12, 'b');
 
   VB aad(777, 'a');
@@ -120,7 +120,7 @@ TEST(Key, aad_only) {
   ASSERT_FALSE(key.Decrypt(iv, aad, tag));
 }
 
-TEST(Key, reference_vectors) {
+TEST(Key, ReferenceVectors) {
   // This test performs authenticated encryption using well-known test vectors
   Key key({0x88, 0xEE, 0x08, 0x7F, 0xD9, 0x5D, 0xA9, 0xFB, 0xF6, 0x72, 0x5A, 0xA9, 0xD7, 0x57, 0xB0, 0xCD});
 
@@ -142,8 +142,8 @@ TEST(Key, reference_vectors) {
 }
 
 #ifndef NDEBUG
-TEST(Key, check_duplicate_iv) {
-  constexpr auto size_v = 1000ul;
+TEST(Key, CheckDuplicateIv) {
+  constexpr size_t size_v = 1000;
   const VB pt_in(size_v, 'a'), iv(12, 'b');
   VB ct(size_v), pt_out(size_v);
 
@@ -179,6 +179,7 @@ TEST(RNG, basic) {
 
 TEST(RNG, multithreaded) {
   vector<thread> threads;
+  threads.reserve(10);
   for (int i = 0; i < 10; i++)
     threads.emplace_back([] {
       for (int i = 0; i < 10; i++) {
