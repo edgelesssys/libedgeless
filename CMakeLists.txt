@@ -61,7 +61,7 @@ if (BUILD_TESTS)
     enable_testing()
     set(BUILD_GMOCK OFF CACHE BOOL "no gmock")
     set(INSTALL_GTEST OFF CACHE BOOL "no googletest install")
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/googletest ./googletest)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/googletest ./googletest)
     include(GoogleTest)
 
     # ecrypto
