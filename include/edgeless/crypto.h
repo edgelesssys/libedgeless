@@ -44,8 +44,8 @@ class Key {
   //! Generate new key using RNG.
   Key();
   //! Set key directly.
-  Key(std::vector<uint8_t> rk);
-  Key(Key&&);
+  explicit Key(std::vector<uint8_t> rk);
+  Key(Key&& other) noexcept;
 
   // Copy ctor and operator= are deleted, because we don't want copied keys (only references and derivates).
   Key(const Key&) = delete;
@@ -98,9 +98,9 @@ class Key {
     return Key{std::vector<uint8_t>(kSizeKey)};
   }
 
-  static constexpr auto kDefaultSizeIv = 12ul;
+  static constexpr size_t kDefaultSizeIv = 12;
 
- protected:
+ private:
   std::vector<uint8_t> rk_;
 #ifndef NDEBUG
   // Used for detecting duplicated encryption IVs during testing

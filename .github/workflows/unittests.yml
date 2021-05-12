@@ -15,20 +15,19 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v2
-      with:
-        submodules: recursive
 
-    - name: Install dependencies and setup build directory
+    - name: Setup
       run: |
-        sudo apt install -y ninja-build
+        sudo apt update
+        sudo apt install clang-tidy-10
         mkdir build
-       
-    - name: CMake and Ninja
+
+    - name: Build
       run: |
-        cmake -GNinja -DBUILD_TESTS=ON ..
-        ninja
+        cmake ..
+        make -j`nproc`
       working-directory: build
 
-    - name: Ctest
-      run: ctest
+    - name: Test
+      run: ctest --output-on-failure
       working-directory: build
