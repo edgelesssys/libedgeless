@@ -18,6 +18,14 @@ if(NOT LIBEDG_NOTEST)
   add_subdirectory(3rdparty/googletest/googletest)
 
   set(CMAKE_CXX_CLANG_TIDY clang-tidy-10)
+
+  if(LIBEDG_ASAN)
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize-recover=all)
+    add_link_options(-fsanitize=address,undefined)
+  elseif(LIBEDG_TSAN OR CMAKE_BUILD_TYPE STREQUAL Debug)
+    add_compile_options(-fsanitize=thread)
+    add_link_options(-fsanitize=thread)
+  endif()
 endif()
 
 #

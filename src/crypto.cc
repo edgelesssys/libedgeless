@@ -7,6 +7,18 @@
 #include <cassert>
 #include <mutex>
 
+// disable LSAN because of leak in RNG::Init
+#ifndef __SANITIZE_ADDRESS__
+#ifdef __has_feature
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+#endif
+#ifdef __SANITIZE_ADDRESS__
+extern "C" const char* __asan_default_options() { return "detect_leaks=0"; }
+#endif
+
 namespace edgeless::crypto {
 
 void RNG::Init() {
