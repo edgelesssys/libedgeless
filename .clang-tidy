@@ -22,6 +22,7 @@ Checks: "*,\
 -hicpp-avoid-goto,\
 -hicpp-braces-around-statements,\
 -hicpp-no-array-decay,\
+-hicpp-no-assembler,\
 -hicpp-signed-bitwise,\
 -hicpp-special-member-functions,\
 -hicpp-vararg,\
@@ -30,6 +31,7 @@ Checks: "*,\
 -llvm-qualified-auto,\
 -misc-non-private-member-variables-in-classes,\
 -modernize-use-default-member-init,\
+-modernize-use-nodiscard,\
 -modernize-use-trailing-return-type,\
 -modernize-use-using,\
 -readability-braces-around-statements,\
