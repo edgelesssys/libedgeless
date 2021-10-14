@@ -51,8 +51,8 @@ class Key {
   Key(const Key&) = delete;
   Key operator=(const Key&) = delete;
 
-  //! Derive new key from current using a given nonce/salt.
-  Key Derive(CBuffer nonce) const;
+  //! Derive new key from current using HKDF with given salt and optional additional data (info).
+  Key Derive(CBuffer salt, CBuffer info) const;
 
   /**
    * Decrypt with AAD.

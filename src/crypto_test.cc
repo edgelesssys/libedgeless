@@ -7,6 +7,7 @@
 #include <vector>
 
 using namespace std;
+using namespace edgeless;
 using namespace edgeless::crypto;
 
 using VB = vector<uint8_t>;
@@ -158,6 +159,37 @@ TEST(Key, CheckDuplicateIv) {
 }
 
 #endif
+
+bool KeysMatch(const Key& k0, const Key& k1) {
+  constexpr size_t size_v = 1000;
+  const VB pt_in(size_v, 'a'), iv(12, 'b');
+  VB ct(size_v), pt_out(size_v);
+
+  Tag tag;
+  tag.fill('t');
+
+  k0.Encrypt(pt_in, iv, tag, ct);
+  EXPECT_NE(pt_in, ct);
+  k1.Decrypt(ct, iv, tag, pt_out);
+  return pt_in == pt_out;
+}
+
+TEST(Key, Derive) {
+  const Key key;
+  const string a = "abc", b = "def";
+  const uint64_t c = 0xdeadbeef;
+  const auto k0 = key.Derive(ToCBuffer(a), ToCBuffer(b));
+  const auto k1 = key.Derive(ToCBuffer(a), ToCBuffer(b));
+  const auto k2 = key.Derive(ToCBuffer(a), {});
+  const auto k3 = key.Derive(ToCBuffer(a), ToCBuffer(c));
+  const auto k4 = key.Derive({}, {});
+
+  ASSERT_TRUE(KeysMatch(k0, k1));
+  ASSERT_FALSE(KeysMatch(k1, k2));
+  ASSERT_FALSE(KeysMatch(k2, k3));
+  ASSERT_FALSE(KeysMatch(k3, k1));
+  ASSERT_FALSE(KeysMatch(k4, k3));
+}
 
 TEST(RNG, basic) {
   vector<uint8_t> b0(100), b1(100), b2(100);
