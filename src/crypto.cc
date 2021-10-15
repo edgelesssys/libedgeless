@@ -98,7 +98,7 @@ Key Key::Derive(CBuffer salt, CBuffer info) const {
   if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, salt.data(), salt.size()) <= 0)
     throw crypto::Error("Failed to set salt for HKDF");
 
-  if (EVP_PKEY_CTX_add1_hkdf_info(ctx.p, info.data(), info.size()) <= 0)
+  if (!info.empty() && EVP_PKEY_CTX_add1_hkdf_info(ctx.p, info.data(), info.size()) <= 0)
     throw crypto::Error("Failed to add info to HKDF");
 
   std::vector<uint8_t> buf(32);  // output of SHA256 HMAC is 256-bit
