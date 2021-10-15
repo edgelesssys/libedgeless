@@ -176,12 +176,12 @@ bool KeysMatch(const Key& k0, const Key& k1) {
 
 TEST(Key, Derive) {
   const Key key;
-  const string a = "abc", b = "def";
+  const VB a('a', 10), b('b', 15);
   const uint64_t c = 0xdeadbeef;
-  const auto k0 = key.Derive(ToCBuffer(a), ToCBuffer(b));
-  const auto k1 = key.Derive(ToCBuffer(a), ToCBuffer(b));
-  const auto k2 = key.Derive(ToCBuffer(a), {});
-  const auto k3 = key.Derive(ToCBuffer(a), ToCBuffer(c));
+  const auto k0 = key.Derive(a, b);
+  const auto k1 = key.Derive(a, b);
+  const auto k2 = key.Derive(a, {});
+  const auto k3 = key.Derive(a, ToCBuffer(c));
   const auto k4 = key.Derive({}, {});
 
   ASSERT_TRUE(KeysMatch(k0, k1));
