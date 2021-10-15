@@ -82,13 +82,12 @@ struct KCtx {
   ~KCtx() { EVP_PKEY_CTX_free(p); }
 };
 
-Key Key::Derive(CBuffer nonce) const {
+Key Key::Derive(CBuffer salt, CBuffer info) const {
   KCtx ctx;
   if (EVP_PKEY_derive_init(ctx.p) <= 0)
     throw crypto::Error("Failed to init HKDF");
 
-  if (EVP_PKEY_CTX_hkdf_mode(ctx.p, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) <= 0)
-    throw crypto::Error("Failed to set HKDF to extract-only mode");
+  // EXTRACT_AND_EXPAND is the default mode; no need to set it explicitly.
 
   if (EVP_PKEY_CTX_set_hkdf_md(ctx.p, EVP_sha256()) <= 0)
     throw crypto::Error("Failed to set MD for HKDF");
@@ -96,8 +95,11 @@ Key Key::Derive(CBuffer nonce) const {
   if (EVP_PKEY_CTX_set1_hkdf_key(ctx.p, rk_.data(), rk_.size()) <= 0)
     throw crypto::Error("Failed to set key for HKDF");
 
-  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, nonce.data(), nonce.size()) <= 0)
+  if (EVP_PKEY_CTX_set1_hkdf_salt(ctx.p, salt.data(), salt.size()) <= 0)
     throw crypto::Error("Failed to set salt for HKDF");
+
+  if (!info.empty() && EVP_PKEY_CTX_add1_hkdf_info(ctx.p, info.data(), info.size()) <= 0)
+    throw crypto::Error("Failed to add info to HKDF");
 
   std::vector<uint8_t> buf(32);  // output of SHA256 HMAC is 256-bit
   size_t size_buf = buf.size();
